@@ -94,22 +94,92 @@ instantly on shell restart, then refresh in the background.
 
 ## Testing without touching your live shell
 
-Build the branch and run a throwaway second `qs` instance rather than
-restarting your actual daily shell:
+Running a second full `qs` instance against your real config/state
+duplicates the `Bar` (shrinks your tiled window area — both bars reserve
+exclusive screen space) and the `Background` (can turn your wallpaper
+black — only one process can usually decode a video wallpaper at a time).
+Both are avoidable with an isolated config, so the test instance never
+touches your real `~/.config/caelestia`, `~/.local/state/caelestia`, or
+`~/.cache/caelestia` at all:
 
 ```bash
 cd /path/to/this/repo
 cmake -B build -G Ninja -DVERSION= -DGIT_REVISION=
 cmake --build build
 
-QML2_IMPORT_PATH="$PWD/build/qml:$QML2_IMPORT_PATH" qs -p . -n &
+# Isolated XDG dirs, just for this test instance
+export XDG_CONFIG_HOME=/tmp/caelestia-test/config
+export XDG_STATE_HOME=/tmp/caelestia-test/state
+export XDG_CACHE_HOME=/tmp/caelestia-test/cache
+mkdir -p "$XDG_CONFIG_HOME/caelestia" "$XDG_STATE_HOME/caelestia"
+
+cat > "$XDG_CONFIG_HOME/caelestia/shell.json" <<'JSON'
+{
+    "background": { "wallpaperEnabled": false },
+    "border": { "thickness": 0 },
+    "bar": { "excludedScreens": ["^.*$"] },
+    "services": {
+        "calendar": {
+            "enabled": true,
+            "command": "gws",
+            "agendaDays": 30,
+            "upcomingHours": 720,
+            "reminderMinutes": 10,
+            "refreshInterval": 900
+        }
+    }
+}
+JSON
+
+# Carry over your real Material You palette so the test instance isn't
+# themed with fallback colours (read-only copy, one-time, not synced back)
+cp ~/.local/state/caelestia/scheme.json "$XDG_STATE_HOME/caelestia/scheme.json"
+
+# Launch via a script rather than inline `VAR=val qs ... &` — env vars on an
+# inline background launch can silently fail to reach the process depending
+# on your shell; a script makes sure `qs` actually sees them.
+cat > /tmp/caelestia-test/launch.sh <<EOF
+#!/bin/bash
+export XDG_CONFIG_HOME="$XDG_CONFIG_HOME"
+export XDG_STATE_HOME="$XDG_STATE_HOME"
+export XDG_CACHE_HOME="$XDG_CACHE_HOME"
+export QML2_IMPORT_PATH="$PWD/build/qml:\$QML2_IMPORT_PATH"
+cd "$PWD"
+exec qs -p . -n
+EOF
+chmod +x /tmp/caelestia-test/launch.sh
+/tmp/caelestia-test/launch.sh &
 
 # Open the dashboard on that instance specifically:
-qs -p . ipc call drawers toggle dashboard
+XDG_CONFIG_HOME="$XDG_CONFIG_HOME" XDG_STATE_HOME="$XDG_STATE_HOME" XDG_CACHE_HOME="$XDG_CACHE_HOME" \
+  qs -p . ipc call drawers toggle dashboard
 # (same command toggles it closed again)
+```
 
-# When done:
-pkill -f "qs -p $PWD"
+> [!IMPORTANT]
+> `excludedScreens` entries are only treated as regex if wrapped in
+> `^...$` — anything else is compared as an exact string match against
+> the screen name. `[".*"]` silently never matches anything; it has to be
+> `["^.*$"]`. `border.thickness: 0` matters too: even with the bar
+> disabled, every screen unconditionally reserves `border.thickness`
+> exclusive space on all four edges (that's a property of `Drawers`
+> itself, not the bar) — zeroing it in this isolated config is what makes
+> the reserved area come out identical to your baseline (verified with
+> `hyprctl monitors -j`, `.reserved` field, before vs. after).
+
+`background.wallpaperEnabled: false` skips the wallpaper renderer
+entirely (no decode contention, no black overlay — Dashboard/Calendar are
+unaffected by this). Copying `scheme.json` gives the test instance your
+real generated colour palette instead of a fallback theme. None of this
+touches your real config/state since `XDG_CONFIG_HOME`/`XDG_STATE_HOME`
+are overridden just for this process's environment.
+
+When done, find and kill the test instance specifically (don't use
+`pkill` by command line — it can match more than you expect):
+
+```bash
+qs list --all              # find the instance whose Config path is this repo
+qs kill --pid <pid>        # or: qs kill --id <instance id>
 ```
 
 Scroll the calendar with the mouse wheel to change month and see the event
