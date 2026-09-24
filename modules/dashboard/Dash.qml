@@ -1,6 +1,10 @@
+pragma ComponentBehavior: Bound
+
 import "dash"
+import QtQuick
 import QtQuick.Layouts
 import Caelestia.Config
+import Caelestia.I18n
 import qs.components
 import qs.components.filedialog
 import qs.services
@@ -87,7 +91,7 @@ GridLayout {
     Rect {
         Layout.row: 0
         Layout.column: 5
-        Layout.rowSpan: 2
+        Layout.rowSpan: GCalendar.upcoming.length > 0 ? 3 : 2
         Layout.preferredWidth: media.implicitWidth
         Layout.fillHeight: true
 
@@ -95,6 +99,83 @@ GridLayout {
 
         Media {
             id: media
+        }
+    }
+
+    Rect {
+        Layout.row: 2
+        Layout.column: 0
+        Layout.columnSpan: 5
+        Layout.fillWidth: true
+        Layout.preferredHeight: eventsCol.implicitHeight
+
+        visible: GCalendar.upcoming.length > 0
+        radius: Tokens.rounding.large
+
+        ColumnLayout {
+            id: eventsCol
+
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.margins: Tokens.padding.large
+            spacing: Tokens.spacing.small
+
+            StyledText {
+                Layout.topMargin: Tokens.padding.small
+                text: Tr.tr("Upcoming")
+                color: Colours.palette.m3primary
+                font: Tokens.font.body.builders.small.weight(Font.DemiBold).build()
+            }
+
+            Repeater {
+                model: GCalendar.upcoming
+
+                RowLayout {
+                    id: eventRow
+
+                    required property var modelData
+
+                    Layout.fillWidth: true
+                    spacing: Tokens.spacing.small
+
+                    Rectangle {
+                        Layout.preferredWidth: 3
+                        Layout.fillHeight: true
+                        radius: 1.5
+                        color: Colours.palette.m3tertiary
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 0
+
+                        StyledText {
+                            Layout.fillWidth: true
+                            text: eventRow.modelData.summary
+                            color: Colours.palette.m3onSurface
+                            font: Tokens.font.body.builders.small.weight(Font.Medium).build()
+                            elide: Text.ElideRight
+                        }
+
+                        StyledText {
+                            Layout.fillWidth: true
+                            text: {
+                                let line = GCalendar.formatEventTime(eventRow.modelData);
+                                if (eventRow.modelData.location)
+                                    line += ` · ${eventRow.modelData.location}`;
+                                return line;
+                            }
+                            color: Colours.palette.m3onSurfaceVariant
+                            font: Tokens.font.body.builders.small.scale(0.9).build()
+                            elide: Text.ElideRight
+                        }
+                    }
+                }
+            }
+
+            Item {
+                Layout.preferredHeight: Tokens.padding.small
+            }
         }
     }
 

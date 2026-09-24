@@ -20,6 +20,17 @@ class PlayerAlias : public settings::ObjectNode {
 };
 CONFIG_LIST_TYPE(PlayerAlias, PlayerAliasList)
 
+class ServiceGCalendar : public settings::ObjectNode {
+    CONFIG_NODE(ServiceGCalendar, settings::ObjectNode)
+
+    CONFIG_PROPERTY(bool, enabled, false) // Requires gws CLI in PATH
+    CONFIG_PROPERTY(QString, command, u"gws"_s) // Path or name of the gws CLI binary
+    CONFIG_PROPERTY(int, agendaDays, 30) // How many days ahead to fetch events
+    CONFIG_PROPERTY(int, upcomingHours, 24) // Hours ahead to show in upcoming list
+    CONFIG_PROPERTY(int, reminderMinutes, 10) // Minutes before event to send notification, 0 to disable
+    CONFIG_PROPERTY(int, refreshInterval, 900) // Refresh interval in seconds
+};
+
 class ServiceConfig : public settings::ObjectNode {
     CONFIG_NODE(ServiceConfig, settings::ObjectNode)
 
@@ -43,6 +54,7 @@ class ServiceConfig : public settings::ObjectNode {
             vmap({ { u"from"_s, u"com.github.th_ch.youtube_music"_s }, { u"to"_s, u"YT Music"_s } }),
         }))
     CONFIG_GLOBAL_ENUM_PROPERTY(LyricsBackend, lyricsBackend, LyricsBackend::Auto)
+    CONFIG_GLOBAL_SUBOBJECT(ServiceGCalendar, calendar)
 };
 
 } // namespace caelestia::config
