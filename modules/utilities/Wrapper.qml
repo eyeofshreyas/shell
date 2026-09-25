@@ -18,9 +18,12 @@ Item {
     property matrix4x4 deformMatrix
 
     readonly property PersistentProperties props: PersistentProperties {
-        property bool recordingListExpanded: false
+        property bool mediaListExpanded: false
         property string recordingConfirmDelete
         property string recordingMode
+        property string screenshotConfirmDelete
+        property string screenshotMode
+        property int utilitiesMediaTab: 0
 
         reloadableId: "utilities"
     }

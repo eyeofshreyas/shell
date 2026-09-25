@@ -49,6 +49,18 @@ Scope {
     // qmllint disable unresolved-type
     CustomShortcut {
         // qmllint enable unresolved-type
+        name: "aiChat"
+        description: "Toggle AI chat sidebar"
+        onPressed: {
+            const screenState = ShellState.forActive();
+            screenState.sidebar = false;
+            screenState.aiChat = !screenState.aiChat;
+        }
+    }
+
+    // qmllint disable unresolved-type
+    CustomShortcut {
+        // qmllint enable unresolved-type
         name: "session"
         description: "Toggle session menu"
         onPressed: {

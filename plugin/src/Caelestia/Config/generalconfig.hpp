@@ -21,6 +21,7 @@ class GeneralApps : public settings::ObjectNode {
     CONFIG_PROPERTY(QStringList, audio, { u"pwvucontrol"_s })
     CONFIG_PROPERTY(QStringList, playback, { u"mpv"_s })
     CONFIG_PROPERTY(QStringList, explorer, { u"thunar"_s })
+    CONFIG_PROPERTY(QStringList, image, { u"swappy"_s, u"-f"_s })
 };
 
 class GeneralIdleTimeout : public settings::ObjectNode {

@@ -164,6 +164,7 @@ Singleton {
 
         path: Quickshell.env("CAELESTIA_XKB_RULES_PATH") || "/usr/share/X11/xkb/rules/base.lst"
         onLoaded: {
+            // Parse layout section
             const layoutMatch = text().match(/! layout\n([\s\S]*?)\n\n/);
             if (layoutMatch) {
                 const lines = layoutMatch[1].split("\n");
@@ -177,6 +178,7 @@ Singleton {
                 }
             }
 
+            // Parse variant section
             const variantMatch = text().match(/! variant\n([\s\S]*?)\n\n/);
             if (variantMatch) {
                 const lines = variantMatch[1].split("\n");

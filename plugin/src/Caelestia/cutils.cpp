@@ -41,25 +41,38 @@ void CUtils::saveItem(
         return;
     }
 
-    auto scaledRect = rect;
-    const auto scale = target->window()->devicePixelRatio();
-    if (rect.isValid() && !qFuzzyCompare(scale + 1.0, 2.0)) {
-        scaledRect =
-            QRectF(rect.left() * scale, rect.top() * scale, rect.width() * scale, rect.height() * scale).toRect();
-    }
-
     const auto grabResult = target->grabToImage();
     if (!grabResult) {
         qCWarning(lcCUtils) << "saveItem: failed to grab" << target;
         return;
     }
 
+    // Compute item size on the GUI thread; QQuickItem must not be touched off it.
+    const qreal itemW = qMax<qreal>(1.0, target->width());
+    const qreal itemH = qMax<qreal>(1.0, target->height());
+
     QObject::connect(
-        grabResult.data(), &QQuickItemGrabResult::ready, this, [grabResult, scaledRect, path, onSaved, onFailed, this] {
-            QtConcurrent::run([grabResult, scaledRect, file = path.toLocalFile()] {
+        grabResult.data(), &QQuickItemGrabResult::ready, this,
+        [grabResult, rect, itemW, itemH, path, onSaved, onFailed, this] {
+            QtConcurrent::run([grabResult, rect, itemW, itemH, file = path.toLocalFile()] {
                 auto image = grabResult->image();
-                if (scaledRect.isValid())
-                    image = image.copy(scaledRect);
+
+                if (rect.isValid()) {
+                    // Compute actual pixel scaling based on grabbed image vs item size.
+                    // This is robust across fractional monitor scales and Wayland backends.
+                    const qreal scaleX = static_cast<qreal>(image.width()) / itemW;
+                    const qreal scaleY = static_cast<qreal>(image.height()) / itemH;
+
+                    const QRectF rf(rect.left() * scaleX, rect.top() * scaleY, rect.width() * scaleX,
+                        rect.height() * scaleY);
+
+                    // Convert to an aligned integer rect and clamp to image bounds
+                    const auto crop = rf.toAlignedRect().intersected(image.rect());
+                    if (!crop.isEmpty())
+                        image = image.copy(crop);
+                    else
+                        qCWarning(lcCUtils) << "saveItem: computed crop rect is empty after scaling";
+                }
 
                 const auto parent = QFileInfo(file).absolutePath();
                 return QDir().mkpath(parent) && image.save(file);

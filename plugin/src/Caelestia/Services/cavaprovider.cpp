@@ -100,6 +100,13 @@ void CavaProcessor::initCava() {
     }
 
     m_plan = cava_init(m_bars, ac::k_sampleRate, 1, 1, 0.85, 50, 10000);
+
+    if (!m_plan) {
+        qWarning() << "CavaProcessor::initCava: failed to initialise cava plan";
+        cleanup();
+        return;
+    }
+
     m_out = new double[static_cast<size_t>(m_bars)];
 }
 

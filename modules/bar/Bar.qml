@@ -76,6 +76,7 @@ ColumnLayout {
     }
 
     function handleWheel(y: real, angleDelta: point): void {
+        const invert = Config.bar.scrollActions.invertScrollDirection;
         const ch = childAt(width / 2, y) as EntryWrapper;
         if (ch?.entryId === "workspaces" && Config.bar.scrollActions.workspaces) {
             // Workspace scroll
@@ -83,20 +84,20 @@ ColumnLayout {
             const specialWs = mon?.lastIpcObject.specialWorkspace.name;
             if (specialWs?.length > 0)
                 Hypr.dispatch(Hypr.usingLua ? `hl.dsp.workspace.toggle_special("${specialWs.slice(8)}")` : `togglespecialworkspace ${specialWs.slice(8)}`);
-            else if (angleDelta.y < 0 || mon.activeWorkspace?.id > 1)
-                Hypr.dispatch(Hypr.usingLua ? `hl.dsp.focus({ workspace = "r${angleDelta.y > 0 ? "-" : "+"}1" })` : `workspace r${angleDelta.y > 0 ? "-" : "+"}1`);
+            else if (angleDelta.y < 0 || (Config.bar.workspaces.perMonitor ? mon.activeWorkspace?.id : Hypr.activeWsId) > 1)
+                Hypr.dispatch(Hypr.usingLua ? `hl.dsp.focus({ workspace = "r${angleDelta.y > 0 ? (invert ? "+" : "-") : (invert ? "-" : "+")}1" })` : `workspace r${angleDelta.y > 0 ? (invert ? "+" : "-") : (invert ? "-" : "+")}1`);
         } else if (y < screen.height / 2 && Config.bar.scrollActions.volume) {
             // Volume scroll on top half
-            if (angleDelta.y > 0)
+            if ((angleDelta.y > 0) !== invert)
                 Audio.incrementVolume();
-            else if (angleDelta.y < 0)
+            else if ((angleDelta.y < 0) !== invert)
                 Audio.decrementVolume();
         } else if (Config.bar.scrollActions.brightness) {
             // Brightness scroll on bottom half
             const monitor = Brightness.getMonitorForScreen(screen);
-            if (angleDelta.y > 0)
+            if ((angleDelta.y > 0) !== invert)
                 monitor.setBrightness(monitor.brightness + GlobalConfig.services.brightnessIncrement);
-            else if (angleDelta.y < 0)
+            else if ((angleDelta.y < 0) !== invert)
                 monitor.setBrightness(monitor.brightness - GlobalConfig.services.brightnessIncrement);
         }
     }
@@ -177,6 +178,14 @@ ColumnLayout {
                     Power {
                         objectName: "taskbarPowerButton"
                         screenState: root.screenState
+                    }
+                }
+            }
+            DelegateChoice {
+                roleValue: "aiChat"
+                delegate: WrappedLoader {
+                    sourceComponent: AiChat {
+                        visibilities: root.visibilities
                     }
                 }
             }

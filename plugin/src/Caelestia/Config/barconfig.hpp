@@ -19,6 +19,7 @@ class BarScrollActions : public settings::ObjectNode {
     CONFIG_PROPERTY(bool, workspaces, true)
     CONFIG_PROPERTY(bool, volume, true)
     CONFIG_PROPERTY(bool, brightness, true)
+    CONFIG_PROPERTY(bool, invertScrollDirection, false)
 };
 
 class BarPopouts : public settings::ObjectNode {
@@ -128,6 +129,7 @@ class BarConfig : public settings::ObjectNode {
     CONFIG_LIST(EntryList, entries,
         DEFAULT_ARG({
             LIST_ENTRY(logo, true),
+            LIST_ENTRY(aiChat, true),
             LIST_ENTRY(workspaces, true),
             LIST_ENTRY(spacer, true),
             LIST_ENTRY(activeWindow, true),

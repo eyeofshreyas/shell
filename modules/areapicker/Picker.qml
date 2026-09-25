@@ -15,6 +15,10 @@ MouseArea {
 
     required property LazyLoader loader
     required property ShellScreen screen
+    // When true, we will start a recording of the selected region instead of taking a screenshot
+    property bool recording: false
+    // Only used when recording=true. If true, include default output+input audio.
+    property bool recordWithSound: false
 
     property bool onClient
 
@@ -81,6 +85,30 @@ MouseArea {
     }
 
     function save(): void {
+        if (root.loader.recording) {
+            // Compute logical coordinates and use the CLI for recording - it handles
+            // fractional scaling conversion to physical pixels
+            const screenRelX = Math.floor(rsx);
+            const screenRelY = Math.floor(rsy);
+            const screenRelW = Math.max(1, Math.ceil(sw)); // Ensure minimum 1px width
+            const screenRelH = Math.max(1, Math.ceil(sh)); // Ensure minimum 1px height
+
+            // Convert to global logical coordinates
+            const globalX = screenRelX + screen.x;
+            const globalY = screenRelY + screen.y;
+            const region = `${screenRelW}x${screenRelH}+${globalX}+${globalY}`;
+
+            const cmd = ["caelestia", "record", "-r", region];
+            if (root.loader.recordWithSound) {
+                cmd.push("-s");
+            }
+            // Start fast polling for instant recording state detection
+            Recorder.startFastPolling();
+            Quickshell.execDetached(cmd);
+            closeAnim.start();
+            return;
+        }
+
         const tmpfile = Qt.resolvedUrl(`/tmp/caelestia-picker-${Quickshell.processId}-${Date.now()}.png`);
         CUtils.saveItem(screencopy, tmpfile, Qt.rect(Math.ceil(rsx), Math.ceil(rsy), Math.floor(sw), Math.floor(sh)), path => {
             if (root.loader.clipboardOnly) {
@@ -222,12 +250,7 @@ MouseArea {
         sourceComponent: ScreencopyView {
             captureSource: root.screen
 
-            onHasContentChanged: {
-                if (hasContent && !root.loader.freeze) {
-                    overlay.visible = border.visible = true;
-                    root.save();
-                }
-            }
+            onHasContentChanged: hasContent && !root.loader.freeze && (overlay.visible = border.visible = true, root.save())
         }
     }
 

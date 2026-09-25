@@ -12,6 +12,7 @@ qml_module(caelestia-config
         tokensattached.cpp
         anim.cpp
         enums.hpp
+        aiconfig.hpp
         backgroundconfig.hpp
         barconfig.hpp
         dashboardconfig.hpp
