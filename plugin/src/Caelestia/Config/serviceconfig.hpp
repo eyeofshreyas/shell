@@ -31,6 +31,23 @@ class ServiceGCalendar : public settings::ObjectNode {
     CONFIG_PROPERTY(int, refreshInterval, 900) // Refresh interval in seconds
 };
 
+class ServiceClaudeUsage : public settings::ObjectNode {
+    CONFIG_NODE(ServiceClaudeUsage, settings::ObjectNode)
+
+    CONFIG_PROPERTY(bool, enabled, false) // Requires claude-usage-widget's CLI (pip install claude-usage-widget)
+    CONFIG_PROPERTY(QString, command, u"claude-usage"_s) // Path or name of the claude-usage CLI binary
+    CONFIG_PROPERTY(int, refreshInterval, 60) // Refresh interval in seconds
+};
+
+class ServiceAiCliUsage : public settings::ObjectNode {
+    CONFIG_NODE(ServiceAiCliUsage, settings::ObjectNode)
+
+    CONFIG_PROPERTY(bool, enabled, false) // Requires a local checkout of odrasile/ai-usage-widget with `npm ci` run in it
+    CONFIG_PROPERTY(QString, repoPath, {}) // Absolute path to the ai-usage-widget checkout (containing backend/index.js)
+    CONFIG_PROPERTY(QString, nodeCommand, u"node"_s) // Path or name of the node binary
+    CONFIG_PROPERTY(int, refreshInterval, 300) // Refresh interval in seconds (PTY-based queries are slow, so keep this long)
+};
+
 class ServiceConfig : public settings::ObjectNode {
     CONFIG_NODE(ServiceConfig, settings::ObjectNode)
 
@@ -55,6 +72,8 @@ class ServiceConfig : public settings::ObjectNode {
         }))
     CONFIG_GLOBAL_ENUM_PROPERTY(LyricsBackend, lyricsBackend, LyricsBackend::Auto)
     CONFIG_GLOBAL_SUBOBJECT(ServiceGCalendar, calendar)
+    CONFIG_GLOBAL_SUBOBJECT(ServiceClaudeUsage, claudeUsage)
+    CONFIG_GLOBAL_SUBOBJECT(ServiceAiCliUsage, aiCliUsage)
 };
 
 } // namespace caelestia::config

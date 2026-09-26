@@ -105,7 +105,7 @@ GridLayout {
     Rect {
         Layout.row: 2
         Layout.column: 0
-        Layout.columnSpan: 6
+        Layout.columnSpan: 4
         Layout.fillWidth: true
         Layout.preferredHeight: eventsCol.implicitHeight
 
@@ -176,6 +176,24 @@ GridLayout {
             Item {
                 Layout.preferredHeight: Tokens.padding.small
             }
+        }
+    }
+
+    Rect {
+        Layout.row: 2
+        Layout.column: 4
+        Layout.columnSpan: 2
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        Layout.preferredHeight: claudeUsage.implicitHeight
+
+        visible: GlobalConfig.services.claudeUsage.enabled || GlobalConfig.services.aiCliUsage.enabled
+        radius: Tokens.rounding.large
+
+        ClaudeUsageCard {
+            id: claudeUsage
+
+            anchors.fill: parent
         }
     }
 

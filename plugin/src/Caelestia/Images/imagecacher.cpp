@@ -96,7 +96,8 @@ void ImageCacher::schedule(const QString& sourcePath, const QSize& size, FillMod
     schedule(sourcePath, cachePathFor(sourcePath, size, fillMode), size, fillMode);
 }
 
-void ImageCacher::schedule(const QString& sourcePath, const QString& cachePath, const QSize& size, FillMode fillMode) {
+void ImageCacher::schedule(const QString& sourcePath, const QString& cachePath, const QSize& size, FillMode fillMode,
+    const QImage& preloaded) {
     if (cachePath.isEmpty())
         return;
 
@@ -107,20 +108,23 @@ void ImageCacher::schedule(const QString& sourcePath, const QString& cachePath, 
         m_inflight.insert(cachePath);
     }
 
-    QThreadPool::globalInstance()->start([this, sourcePath, cachePath, size, fillMode]() {
-        runJob(sourcePath, cachePath, size, fillMode);
+    QThreadPool::globalInstance()->start([this, sourcePath, cachePath, size, fillMode, preloaded]() {
+        runJob(sourcePath, cachePath, size, fillMode, preloaded);
         const QMutexLocker locker(&m_mutex);
         // NOLINTNEXTLINE(clang-analyzer-core.CallAndMessage) m_inflight is a value member, not a pointer
         m_inflight.remove(cachePath);
     });
 }
 
-void ImageCacher::runJob(const QString& sourcePath, const QString& cachePath, const QSize& size, FillMode fillMode) {
+void ImageCacher::runJob(
+    const QString& sourcePath, const QString& cachePath, const QSize& size, FillMode fillMode, QImage preloaded) {
     if (QFile::exists(cachePath)) {
         return;
     }
 
-    QImage image(sourcePath);
+    QImage image = std::move(preloaded);
+    if (image.isNull())
+        image = QImage(sourcePath);
     if (image.isNull()) {
         // Not a directly-decodable image (e.g. a video wallpaper) - try grabbing a frame with ffmpeg.
         image = grabVideoFrame(sourcePath);

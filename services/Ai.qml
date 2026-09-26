@@ -56,7 +56,7 @@ Singleton {
     }
 
     property string systemPrompt: {
-        let prompt = Config.ai?.systemPrompt ?? "";
+        let prompt = GlobalConfig.ai?.systemPrompt ?? "";
         for (let key in root.promptSubstitutions) {
             // prompt = prompt.replaceAll(key, root.promptSubstitutions[key]);
             // QML/JS doesn't support replaceAll, so use split/join
@@ -77,7 +77,7 @@ Singleton {
         return (key?.length > 0);
     }
     property var postResponseHook
-    property real temperature: Config.ai?.temperature ?? 0.5
+    property real temperature: GlobalConfig.ai?.temperature ?? 0.5
     property QtObject tokenCount: QtObject {
         property int input: -1
         property int output: -1
@@ -281,7 +281,7 @@ Singleton {
     // - key_get_description: Description of pricing and how to get an API key
     // - api_format: The API format of the model. Can be "openai" or "gemini". Default is "openai".
     // - extraParams: Extra parameters to be passed to the model. This is a JSON object.
-    property var models: Config.ai.policies.restrictOnlineModels === 2 ? {} : {
+    property var models: GlobalConfig.ai.policies.restrictOnlineModels === 2 ? {} : {
         "gemini-2.0-flash": aiModelComponent.createObject(this, {
             "name": "Gemini 2.0 Flash",
             "icon": "google-gemini-symbolic",
@@ -374,7 +374,7 @@ Singleton {
         }),
     }
     property var modelList: Object.keys(root.models)
-    property var currentModelId: Config.ai?.model || modelList[0]
+    property var currentModelId: GlobalConfig.ai?.model || modelList[0]
 
     property var apiStrategies: {
         "openai": openaiApiStrategy.createObject(this),
@@ -499,13 +499,13 @@ Singleton {
         watchChanges: false;
         onLoadedChanged: {
             if (!promptLoader.loaded) return;
-            Config.ai.systemPrompt = promptLoader.text();
-            root.addMessage(qsTr("Loaded the following system prompt\n\n---\n\n%1").arg(Config.ai.systemPrompt), root.interfaceRole);
+            GlobalConfig.ai.systemPrompt = promptLoader.text();
+            root.addMessage(qsTr("Loaded the following system prompt\n\n---\n\n%1").arg(GlobalConfig.ai.systemPrompt), root.interfaceRole);
         }
     }
 
     function printPrompt() {
-        root.addMessage(qsTr("The current system prompt is\n\n---\n\n%1").arg(Config.ai.systemPrompt), root.interfaceRole);
+        root.addMessage(qsTr("The current system prompt is\n\n---\n\n%1").arg(GlobalConfig.ai.systemPrompt), root.interfaceRole);
     }
 
     function loadPrompt(filePath) {
@@ -558,14 +558,14 @@ Singleton {
             // Fetch API keys if needed
             if (model?.requires_key) KeyringStorage.fetchKeyringData();
             // See if policy prevents online models
-            if (Config.ai.policies.restrictOnlineModels === 2 && !model.endpoint.includes("localhost")) {
+            if (GlobalConfig.ai.policies.restrictOnlineModels === 2 && !model.endpoint.includes("localhost")) {
                 root.addMessage(
                     qsTr("Online models disallowed\n\nControlled by `policies.ai` config option"),
                     root.interfaceRole
                 );
                 return;
             }
-            if (setPersistentState) Config.ai.model = modelId;
+            if (setPersistentState) GlobalConfig.ai.model = modelId;
             if (feedback) root.addMessage(qsTr("Model set to %1").arg(model.name), root.interfaceRole);
             if (model.requires_key) {
                 // If key not there show advice
@@ -583,7 +583,7 @@ Singleton {
             root.addMessage(qsTr("Invalid tool. Supported tools:\n- %1").arg(root.availableTools.join("\n- ")), root.interfaceRole);
             return false;
         }
-        Config.ai.tool = tool;
+        GlobalConfig.ai.tool = tool;
         return true;
     }
     
@@ -596,7 +596,7 @@ Singleton {
             root.addMessage(qsTr("Temperature must be between 0 and 2"), Ai.interfaceRole);
             return;
         }
-        Config.ai.temperature = value;
+        GlobalConfig.ai.temperature = value;
         root.temperature = value;
         root.addMessage(qsTr("Temperature set to %1").arg(value), Ai.interfaceRole);
     }
@@ -870,7 +870,7 @@ Singleton {
             addFunctionOutputMessage(name, qsTr("Switched to search mode. Continue with the user's request."))
             requester.makeRequest();
         } else if (name === "get_shell_config") {
-            const configJson = root.toPlainObject(Config.ai)
+            const configJson = root.toPlainObject(GlobalConfig.ai)
             addFunctionOutputMessage(name, JSON.stringify(configJson));
             requester.makeRequest();
         } else if (name === "set_shell_config") {
