@@ -12,7 +12,11 @@ Item {
     id: root
 
     readonly property real lastFetched: Math.max(ClaudeUsage.lastFetched, AiCliUsage.lastFetched)
-    readonly property bool claudeUnavailable: ClaudeUsage.enabled && ClaudeUsage.rateLimitError.length > 0
+    // claude-usage falls back to last-known values on a rate-limited/failed API call
+    // (rate_limit_error is non-fatal), so only treat it as truly unavailable when we've
+    // never had a successful fetch to fall back on.
+    readonly property bool claudeUnavailable: ClaudeUsage.enabled && ClaudeUsage.rateLimitError.length > 0 && ClaudeUsage.lastFetched === 0
+    readonly property bool claudeStale: ClaudeUsage.enabled && ClaudeUsage.rateLimitError.length > 0 && ClaudeUsage.lastFetched > 0
     property real now: Date.now()
 
     implicitWidth: layout.implicitWidth + Tokens.padding.large * 2
@@ -109,7 +113,7 @@ Item {
         UsageRow {
             Layout.fillWidth: true
             visible: AiCliUsage.codex !== null
-            label: Tr.tr("Codex (5h)")
+            label: AiCliUsage.codex?.period === "monthly" ? Tr.tr("Codex (monthly)") : Tr.tr("Codex (5h)")
             percentUsed: 100 - (AiCliUsage.codex?.percentLeft ?? 100)
             fgColour: Colours.palette.m3secondary
             resetText: AiCliUsage.codex?.reset ? Tr.tr("Resets %1").arg(AiCliUsage.codex.reset) : ""
@@ -129,8 +133,8 @@ Item {
             Layout.topMargin: Tokens.spacing.extraSmall
             horizontalAlignment: Text.AlignHCenter
             visible: root.lastFetched > 0
-            text: Tr.tr("Updated %1").arg(root.formatAgo(root.now - root.lastFetched))
-            color: Colours.palette.m3outline
+            text: root.claudeStale ? Tr.tr("Updated %1 (rate limited, last known)").arg(root.formatAgo(root.now - root.lastFetched)) : Tr.tr("Updated %1").arg(root.formatAgo(root.now - root.lastFetched))
+            color: root.claudeStale ? Colours.palette.m3error : Colours.palette.m3outline
             font: Tokens.font.body.builders.small.scale(0.75).build()
         }
     }
