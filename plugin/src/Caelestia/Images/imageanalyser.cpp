@@ -7,6 +7,8 @@
 #include <qquickwindow.h>
 #include <qtconcurrentrun.h>
 
+#include "imagecacher.hpp"
+
 namespace {
 
 Q_LOGGING_CATEGORY(lcImageAnalyser, "caelestia.imageanalyser", QtInfoMsg)
@@ -150,7 +152,11 @@ void ImageAnalyser::update() {
         });
     } else {
         m_futureWatcher->setFuture(QtConcurrent::run([=, this](QPromise<AnalyseResult>& promise) {
-            const QImage image(m_source);
+            QImage image(m_source);
+            if (image.isNull()) {
+                // Not a directly-decodable image (e.g. a video wallpaper) - try grabbing a frame with ffmpeg.
+                image = ImageCacher::grabVideoFrame(m_source);
+            }
             analyse(promise, image, m_rescaleSize);
         }));
     }

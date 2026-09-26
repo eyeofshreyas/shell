@@ -120,16 +120,19 @@ void CachingImageResponse::process() {
         }
     }
 
-    // Schedule cache job (this call will return the original image, but later ones will use cache)
-    ImageCacher::instance()->schedule(path, cachePath, size, m_fillMode);
-
     m_image = QImage(path);
     if (m_image.isNull())
         m_image = ImageCacher::grabVideoFrame(path);
     if (m_image.isNull()) {
         m_error = u"Failed to decode source: "_s + path;
         qCWarning(lcCProv).noquote() << m_error;
+        return;
     }
+
+    // Schedule cache job (this call returns the original image, but later ones will use cache).
+    // Pass along the frame we just decoded so a video source isn't grabbed via ffmpeg a second
+    // time concurrently on the cache-writer thread.
+    ImageCacher::instance()->schedule(path, cachePath, size, m_fillMode, m_image);
 }
 
 } // namespace

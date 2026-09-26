@@ -28,12 +28,16 @@ public:
     static QImage grabVideoFrame(const QString& sourcePath);
 
     void schedule(const QString& sourcePath, const QSize& size, FillMode fillMode);
-    void schedule(const QString& sourcePath, const QString& cachePath, const QSize& size, FillMode fillMode);
+    // preloaded: an already-decoded frame, if the caller has one (avoids a second, expensive
+    // ffmpeg decode racing the first when the source is a video).
+    void schedule(const QString& sourcePath, const QString& cachePath, const QSize& size, FillMode fillMode,
+        const QImage& preloaded = {});
 
 private:
     explicit ImageCacher(QObject* parent = nullptr);
 
-    static void runJob(const QString& sourcePath, const QString& cachePath, const QSize& size, FillMode fillMode);
+    static void runJob(
+        const QString& sourcePath, const QString& cachePath, const QSize& size, FillMode fillMode, QImage preloaded);
 
     QMutex m_mutex;
     QSet<QString> m_inflight;
