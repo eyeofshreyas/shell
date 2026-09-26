@@ -79,6 +79,7 @@ public:
     enum class Filter : quint8 {
         NoFilter,
         Images,
+        Media,
         Files,
         Dirs
     };

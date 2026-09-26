@@ -14,6 +14,7 @@ PathView {
     required property var screenState
     required property var panels
     required property var content
+    required property string category
 
     readonly property int itemWidth: Tokens.sizes.launcher.wallpaperWidth * 0.8 + Tokens.padding.medium * 2
 
@@ -49,11 +50,11 @@ PathView {
 
         readonly property string search: root.search.text.split(" ").slice(1).join(" ")
 
-        values: Wallpapers.query(search)
+        values: Wallpapers.query(search).filter(w => Wallpapers.getCategoryFor(w) === root.category)
         onValuesChanged: root.currentIndex = search ? 0 : values.findIndex(w => w.path === Wallpapers.actualCurrent)
     }
 
-    Component.onCompleted: currentIndex = Wallpapers.list.findIndex(w => w.path === Wallpapers.actualCurrent)
+    Component.onCompleted: currentIndex = scriptModel.values.findIndex(w => w.path === Wallpapers.actualCurrent)
     Component.onDestruction: Wallpapers.stopPreview()
 
     onCurrentItemChanged: {

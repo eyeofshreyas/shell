@@ -1,15 +1,13 @@
 #!/usr/bin/env bash
 set -e
+cd "$(dirname "$(readlink -f "$0")")"
 
-# Make sure .local exists
 mkdir -p "$PWD/.local"
 
-# Configure build if not already done
 if [ ! -d build ]; then
     cmake -S . -B build \
       -G Ninja \
       -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-      -DCMAKE_CXX_COMPILER=clazy \
       -DCMAKE_INSTALL_PREFIX=$PWD/.local \
       -DINSTALL_LIBDIR=lib/caelestia \
       -DINSTALL_QMLDIR=lib/qt6/qml \
@@ -18,19 +16,16 @@ if [ ! -d build ]; then
       -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 fi
 
-# Full build + install once before entering the loop
 cmake --build build
 cmake --install build
 
-# Function to rebuild + restart quickshell
 run_quickshell() {
     cmake --build build
     cmake --install build
 
-    # Kill old quickshell if running
     pkill -x quickshell || true
+    pkill -f 'qs -c caelestia' || true
 
-    # Relaunch
     export QML2_IMPORT_PATH="$PWD/.local/lib/qt6/qml:$QML2_IMPORT_PATH"
     QS_CONFIG_NAME=caelestia \
     XDG_CONFIG_DIRS="$PWD/.local/etc/xdg" \
@@ -39,9 +34,9 @@ run_quickshell() {
 
 export -f run_quickshell
 
-# Find all QML, CPP, and header files, then watch them
+# Same as run.sh but -n so entr works with no controlling TTY (needed at login)
 find \
     "$PWD" \
     -name '*.qml' -o -name '*.cpp' -o -name '*.hpp' \
 | grep -v "^$PWD/build" \
-| entr -r bash -c run_quickshell
+| entr -rn bash -c run_quickshell

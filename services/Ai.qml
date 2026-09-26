@@ -3,7 +3,7 @@ pragma ComponentBehavior: Bound
 
 import qs.utils
 import qs.utils
-import qs.config
+import Caelestia.Config
 import Caelestia
 import Quickshell
 import Quickshell.Io
@@ -100,7 +100,7 @@ Singleton {
 
     property var promptSubstitutions: {
         "{DISTRO}": SystemInfo.distroName,
-        "{DATETIME}": `${DateTime.time}, ${DateTime.collapsedCalendarFormat}`,
+        "{DATETIME}": `${DateTimeInfo.time}, ${DateTimeInfo.collapsedCalendarFormat}`,
         "{WINDOWCLASS}": Hypr.activeWindow?.class ?? "Unknown",
         "{DE}": `${SystemInfo.desktopEnvironment} (${SystemInfo.windowingSystem})` 
     }

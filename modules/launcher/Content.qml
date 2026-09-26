@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import Quickshell.Io
 import Caelestia
 import Caelestia.Config
 import Caelestia.I18n
@@ -43,6 +44,18 @@ Item {
             padding: root.padding
             rounding: root.rounding
         }
+    }
+
+    IpcHandler {
+        function set(text: string): void {
+            search.text = text;
+        }
+
+        function cat(c: string): void {
+            list.wallpaperCategory = c;
+        }
+
+        target: "wpdebug"
     }
 
     SearchBar {

@@ -181,14 +181,6 @@ ColumnLayout {
                     }
                 }
             }
-            DelegateChoice {
-                roleValue: "aiChat"
-                delegate: WrappedLoader {
-                    sourceComponent: AiChat {
-                        visibilities: root.visibilities
-                    }
-                }
-            }
         }
     }
 

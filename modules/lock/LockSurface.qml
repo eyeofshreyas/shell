@@ -7,6 +7,7 @@ import Caelestia.Config
 import qs.components
 import qs.components.images
 import qs.services
+import qs.utils
 
 WlSessionLockSurface {
     id: root
@@ -188,7 +189,8 @@ WlSessionLockSurface {
         id: wallpaperBackground
 
         CachingImage {
-            path: Wallpapers.current
+            // Video wallpapers can't be decoded here; show the static fallback instead of nothing.
+            path: Images.isValidVideoByName(Wallpapers.current.toLowerCase()) ? Wallpapers.fallback : Wallpapers.current
         }
     }
 

@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtMultimedia
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
@@ -116,25 +117,45 @@ Item {
 
         // Determine renderer
         readonly property bool isGif: path && path.toLowerCase().endsWith(".gif")
+        readonly property bool isVideo: path && Images.isValidVideoByName(path.toLowerCase())
 
-        // The child that is currently visible (either staticImg or gifImg)
-        readonly property Item activeChild: isGif ? gifImg : staticImg
+        // The child that is currently visible (staticImg, gifImg or videoOut)
+        readonly property Item activeChild: isVideo ? videoOut : isGif ? gifImg : staticImg
 
         // Load new wallpaper and become active when ready
         function loadAndBecomeActive(newPath: string): void {
+            // Redundant reload of the target this slot is already loading/showing
+            // (e.g. the wallpaper state file firing multiple change events for one
+            // switch): don't reset the renderers - for video that would restart the
+            // decoder mid-load and it would never reach Loaded/Buffered, so the
+            // crossfade would never happen. Just check whether it's ready to activate.
+            if (path === newPath) {
+                checkAndActivate();
+                return;
+            }
             path = newPath;
 
-            if (isGif) {
-                staticImg.visible = false;
-                staticImg.path = "";
+            staticImg.visible = false;
+            staticImg.path = "";
 
+            gifImg.visible = false;
+            gifImg.playing = false;
+            gifImg.source = "";
+
+            videoLoadTimer.stop();
+            videoOut.visible = false;
+            videoPlayer.stop();
+            videoPlayer.source = "";
+
+            if (isVideo) {
+                videoOut.visible = true;
+                // Debounced: rapid successive source reassignment (e.g. fast-scrolling
+                // the wallpaper picker) races the FFmpeg backend's decoder teardown.
+                videoLoadTimer.restart();
+            } else if (isGif) {
                 gifImg.source = newPath;
                 gifImg.visible = true;
             } else {
-                gifImg.visible = false;
-                gifImg.playing = false;
-                gifImg.source = "";
-
                 staticImg.path = newPath;
                 staticImg.visible = true;
             }
@@ -145,7 +166,16 @@ Item {
 
         // Check if ready and activate this slot
         function checkAndActivate(): void {
-            if (activeChild.status !== Image.Ready) return;
+            if (isVideo) {
+                // Qt6's QMediaPlayer::MediaStatus enum exposes LoadedMedia/BufferedMedia
+                // to QML, not Loaded/Buffered - the old names silently resolved to
+                // undefined, so this guard never passed and a video slot could load
+                // and buffer fully without ever becoming the active (visible) slot.
+                if (videoPlayer.mediaStatus !== MediaPlayer.LoadedMedia && videoPlayer.mediaStatus !== MediaPlayer.BufferedMedia)
+                    return;
+            } else if (activeChild.status !== Image.Ready) {
+                return;
+            }
 
             // Start GIF playback
             if (isGif) {
@@ -192,6 +222,38 @@ Item {
 
             onVisibleChanged: {
                 if (!visible) playing = false;
+            }
+        }
+
+        // --- Video renderer (persistent MediaPlayer + VideoOutput) ---
+        Timer {
+            id: videoLoadTimer
+            interval: 150
+            onTriggered: {
+                videoPlayer.source = img.path;
+                videoPlayer.play();
+            }
+        }
+
+        VideoOutput {
+            id: videoOut
+            anchors.fill: parent
+            visible: false
+            fillMode: VideoOutput.PreserveAspectCrop
+
+            onVisibleChanged: {
+                if (!visible) videoPlayer.pause();
+            }
+        }
+
+        MediaPlayer {
+            id: videoPlayer
+            loops: MediaPlayer.Infinite
+            videoOutput: videoOut
+
+            onMediaStatusChanged: {
+                if ((mediaStatus === MediaPlayer.LoadedMedia || mediaStatus === MediaPlayer.BufferedMedia) && videoOut.visible)
+                    img.checkAndActivate();
             }
         }
 

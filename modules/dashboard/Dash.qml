@@ -91,7 +91,7 @@ GridLayout {
     Rect {
         Layout.row: 0
         Layout.column: 5
-        Layout.rowSpan: GCalendar.upcoming.length > 0 ? 3 : 2
+        Layout.rowSpan: 2
         Layout.preferredWidth: media.implicitWidth
         Layout.fillHeight: true
 
@@ -105,7 +105,7 @@ GridLayout {
     Rect {
         Layout.row: 2
         Layout.column: 0
-        Layout.columnSpan: 5
+        Layout.columnSpan: 6
         Layout.fillWidth: true
         Layout.preferredHeight: eventsCol.implicitHeight
 

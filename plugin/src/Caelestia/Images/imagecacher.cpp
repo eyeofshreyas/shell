@@ -8,6 +8,7 @@
 #include <qloggingcategory.h>
 #include <qmutex.h>
 #include <qpainter.h>
+#include <qprocess.h>
 #include <qsavefile.h>
 #include <qthreadpool.h>
 
@@ -60,6 +61,18 @@ const QString& ImageCacher::cacheDir() {
     return k_dir;
 }
 
+QImage ImageCacher::grabVideoFrame(const QString& sourcePath) {
+    QProcess proc;
+    proc.start(u"ffmpeg"_s,
+        { u"-y"_s, u"-ss"_s, u"00:00:01"_s, u"-i"_s, sourcePath, u"-frames:v"_s, u"1"_s, u"-f"_s, u"image2pipe"_s,
+            u"-vcodec"_s, u"png"_s, u"-"_s });
+
+    if (!proc.waitForFinished(10000) || proc.exitStatus() != QProcess::NormalExit || proc.exitCode() != 0)
+        return {};
+
+    return QImage::fromData(proc.readAllStandardOutput(), "PNG");
+}
+
 QString ImageCacher::cachePathFor(const QString& sourcePath, const QSize& size, FillMode fillMode) {
     const QString sha = sha256sum(sourcePath);
     if (sha.isEmpty())
@@ -108,6 +121,10 @@ void ImageCacher::runJob(const QString& sourcePath, const QString& cachePath, co
     }
 
     QImage image(sourcePath);
+    if (image.isNull()) {
+        // Not a directly-decodable image (e.g. a video wallpaper) - try grabbing a frame with ffmpeg.
+        image = grabVideoFrame(sourcePath);
+    }
     if (image.isNull()) {
         qCWarning(lcCacher).noquote() << "Failed to decode source" << sourcePath;
         return;

@@ -1,9 +1,11 @@
 #include "filesystemmodel.hpp"
 
 #include <qdiriterator.h>
+#include <qfileinfo.h>
 #include <qtconcurrentrun.h>
 
 #include <algorithm>
+#include <array>
 #include <optional>
 #include <utility>
 
@@ -11,6 +13,16 @@ namespace caelestia::models {
 
 using Qt::StringLiterals::operator""_s;
 using Qt::StringLiterals::operator""_ba;
+
+namespace {
+constexpr std::array k_videoExtensions = { "mp4", "webm", "mkv", "mov", "m4v", "avi" };
+
+bool isVideoPath(const QString& path) {
+    const auto suffix = QFileInfo(path).suffix().toLower();
+    return std::ranges::any_of(
+        k_videoExtensions, [&](const char* ext) { return suffix == QLatin1String(ext); });
+}
+} // namespace
 
 FileSystemEntry::FileSystemEntry(const QString& path, QString relativePath, QObject* parent)
     : QObject(parent)
@@ -326,17 +338,26 @@ FileSystemModel::ScanFilters FileSystemModel::filtersFor(
     ScanFilters filters;
     filters.nameFilters = nameFilters;
 
-    if (filter == Filter::Images) {
+    if (filter == Filter::Images || filter == Filter::Media) {
         const auto formats = QImageReader::supportedImageFormats();
         for (const auto& format : formats)
             filters.nameFilters << u"*."_s + QString::fromUtf8(format);
 
-        filters.filterFn = [](const QString& path) {
-            return QImageReader(path).canRead();
-        };
+        if (filter == Filter::Media) {
+            for (const auto* ext : k_videoExtensions)
+                filters.nameFilters << u"*."_s + QString::fromLatin1(ext);
+
+            filters.filterFn = [](const QString& path) {
+                return QImageReader(path).canRead() || isVideoPath(path);
+            };
+        } else {
+            filters.filterFn = [](const QString& path) {
+                return QImageReader(path).canRead();
+            };
+        }
     }
 
-    if (filter == Filter::Files || filter == Filter::Images)
+    if (filter == Filter::Files || filter == Filter::Images || filter == Filter::Media)
         filters.filters = QDir::Files;
     else if (filter == Filter::Dirs)
         filters.filters = QDir::Dirs | QDir::NoDotAndDotDot;

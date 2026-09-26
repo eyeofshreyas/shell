@@ -129,7 +129,6 @@ class BarConfig : public settings::ObjectNode {
     CONFIG_LIST(EntryList, entries,
         DEFAULT_ARG({
             LIST_ENTRY(logo, true),
-            LIST_ENTRY(aiChat, true),
             LIST_ENTRY(workspaces, true),
             LIST_ENTRY(spacer, true),
             LIST_ENTRY(activeWindow, true),

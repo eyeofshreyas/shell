@@ -22,6 +22,13 @@ Item {
     readonly property bool showWallpapers: search.text.startsWith(`${GlobalConfig.launcher.actionPrefix}wallpaper `)
     readonly property var currentList: showWallpapers ? wallpaperList.item : appList.item // Can be either ListView or PathView, so can't type properly
     property string animState: showWallpapers ? "wallpapers" : "apps"
+    property string wallpaperCategory: "Static"
+
+    // Always land on the Static tab when the picker is freshly opened.
+    onShowWallpapersChanged: {
+        if (showWallpapers)
+            wallpaperCategory = "Static";
+    }
 
     anchors.horizontalCenter: parent.horizontalCenter
     anchors.bottom: parent.bottom
@@ -49,7 +56,7 @@ Item {
 
             PropertyChanges {
                 root.implicitWidth: Math.max(root.Tokens.sizes.launcher.itemWidth * 1.2, wallpaperList.implicitWidth)
-                root.implicitHeight: root.Tokens.sizes.launcher.wallpaperHeight
+                root.implicitHeight: root.Tokens.sizes.launcher.wallpaperHeight + wallpaperTabs.implicitHeight + wallpaperList.anchors.topMargin
                 wallpaperList.active: true
             }
         }
@@ -90,13 +97,42 @@ Item {
         }
     }
 
+    Row {
+        id: wallpaperTabs
+
+        anchors.top: parent.top
+        anchors.horizontalCenter: parent.horizontalCenter
+
+        visible: root.showWallpapers
+        spacing: Tokens.spacing.small
+
+        IconTextButton {
+            icon: "image"
+            text: Tr.tr("Static")
+            type: IconTextButton.Tonal
+            isToggle: true
+            checked: root.wallpaperCategory === "Static"
+            onClicked: root.wallpaperCategory = "Static"
+        }
+
+        IconTextButton {
+            icon: "movie"
+            text: Tr.tr("Animated")
+            type: IconTextButton.Tonal
+            isToggle: true
+            checked: root.wallpaperCategory === "Animated"
+            onClicked: root.wallpaperCategory = "Animated"
+        }
+    }
+
     Loader {
         id: wallpaperList
 
         asynchronous: true
         active: false
 
-        anchors.top: parent.top
+        anchors.top: wallpaperTabs.bottom
+        anchors.topMargin: Tokens.spacing.small
         anchors.bottom: parent.bottom
         anchors.horizontalCenter: parent.horizontalCenter
 
@@ -107,6 +143,7 @@ Item {
             screenState: root.screenState
             panels: root.panels
             content: root.content
+            category: root.wallpaperCategory
         }
     }
 

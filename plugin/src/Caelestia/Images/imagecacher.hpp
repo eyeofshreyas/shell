@@ -1,5 +1,6 @@
 #pragma once
 
+#include <qimage.h>
 #include <qmutex.h>
 #include <qobject.h>
 #include <qset.h>
@@ -22,6 +23,9 @@ public:
 
     static const QString& cacheDir();
     static QString cachePathFor(const QString& sourcePath, const QSize& size, FillMode fillMode);
+
+    // Not directly decodable as an image (e.g. a video wallpaper) - grab a frame with ffmpeg instead.
+    static QImage grabVideoFrame(const QString& sourcePath);
 
     void schedule(const QString& sourcePath, const QSize& size, FillMode fillMode);
     void schedule(const QString& sourcePath, const QString& cachePath, const QSize& size, FillMode fillMode);
