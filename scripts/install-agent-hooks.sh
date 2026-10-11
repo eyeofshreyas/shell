@@ -7,7 +7,7 @@ set -euo pipefail
 settings="${CLAUDE_SETTINGS:-$HOME/.claude/settings.json}"
 marker="caelestia-agents.sock"
 cmd='nc -UN "${XDG_RUNTIME_DIR:-/run/user/$UID}/caelestia-agents.sock" 2>/dev/null || true'
-events=(SessionStart UserPromptSubmit PreToolUse Notification Stop SessionEnd)
+events=(SessionStart UserPromptSubmit PreToolUse PostToolUse PostToolUseFailure Notification Stop SessionEnd)
 
 command -v jq >/dev/null || { echo "jq is required" >&2; exit 1; }
 command -v nc >/dev/null || echo "warning: nc (openbsd-netcat) not found; hooks will do nothing until it is installed" >&2

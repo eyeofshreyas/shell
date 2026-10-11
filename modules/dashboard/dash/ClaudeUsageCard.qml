@@ -59,16 +59,17 @@ Item {
                 id: mascot
 
                 readonly property var s: AgentSessions.sessions
-                readonly property var lead: s.find(x => x.state === "waiting") ?? s.find(x => x.state === "working")
+                readonly property var lead: s.find(x => x.state === "waiting") ?? s.find(x => x.state === "error") ?? s.find(x => x.state === "working")
 
                 Layout.preferredWidth: implicitWidth
                 Layout.preferredHeight: implicitHeight
                 tool: lead?.tool ?? ""
                 dancing: Players.active?.isPlaying ?? false
                 pointer: cardHover.hovered ? mapFromItem(root, cardHover.point.position) : Qt.point(NaN, NaN)
-                mood: s.some(x => x.state === "waiting") ? "waiting" : s.some(x => x.state === "working") ? "working" : s.length > 0 ? "idle" : "sleep"
-                body: mood === "waiting" ? Colours.palette.m3errorContainer : Colours.palette.m3primary
-                eye: mood === "waiting" ? Colours.palette.m3onErrorContainer : Colours.palette.m3onPrimary
+                tired: ClaudeUsage.enabled && Math.max(ClaudeUsage.sessionUtilization, ClaudeUsage.weeklyUtilization) >= 0.95
+                mood: s.some(x => x.state === "waiting") ? "waiting" : s.some(x => x.state === "error") ? "error" : s.some(x => x.state === "working") ? "working" : s.length > 0 ? "idle" : "sleep"
+                body: mood === "waiting" || mood === "error" ? Colours.palette.m3errorContainer : Colours.palette.m3primary
+                eye: mood === "waiting" || mood === "error" ? Colours.palette.m3onErrorContainer : Colours.palette.m3onPrimary
                 accent: Colours.palette.m3error
             }
 
@@ -159,7 +160,7 @@ Item {
                 id: agentRow
 
                 required property var modelData
-                readonly property color stateColour: modelData.state === "waiting" ? Colours.palette.m3error : modelData.state === "working" ? Colours.palette.m3primary : Colours.palette.m3outline
+                readonly property color stateColour: modelData.state === "waiting" || modelData.state === "error" ? Colours.palette.m3error : modelData.state === "working" ? Colours.palette.m3primary : Colours.palette.m3outline
 
                 Layout.fillWidth: true
                 spacing: Tokens.spacing.small
@@ -179,7 +180,7 @@ Item {
                 }
 
                 StyledText {
-                    text: agentRow.modelData.state === "waiting" ? Tr.tr("needs you") : agentRow.modelData.state === "working" ? (agentRow.modelData.tool || Tr.tr("working")) : Tr.tr("idle")
+                    text: agentRow.modelData.state === "waiting" ? (agentRow.modelData.tool === "AskUserQuestion" ? Tr.tr("question") : Tr.tr("needs you")) : agentRow.modelData.state === "error" ? Tr.tr("tool failed") : agentRow.modelData.state === "working" ? (agentRow.modelData.tool || Tr.tr("working")) : Tr.tr("idle")
                     color: agentRow.stateColour
                     font: Tokens.font.body.builders.small.scale(0.85).build()
                 }

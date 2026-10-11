@@ -59,16 +59,31 @@ Singleton {
             const inp = ev.tool_input ?? {};
             const detail = inp.file_path ? inp.file_path.split("/").pop() : (inp.command ?? inp.pattern ?? inp.query ?? inp.url ?? inp.description ?? "");
             upsert(id, Object.assign(base, {
-                state: "working",
+                state: ev.tool_name === "AskUserQuestion" ? "waiting" : "working",
                 tool: ev.tool_name ?? "",
                 detail: String(detail).split("\n")[0].slice(0, 60)
             }));
             break;
         }
+        case "PostToolUse":
+            upsert(id, Object.assign(base, {
+                state: "working",
+                tool: "",
+                detail: ""
+            }));
+            break;
+        case "PostToolUseFailure":
+            upsert(id, Object.assign(base, {
+                state: "error",
+                tool: ev.tool_name ?? "",
+                detail: String(ev.error ?? "").split("\n")[0].slice(0, 60)
+            }));
+            break;
         case "Notification": {
+            const asking = sessions.find(x => x.id === id)?.tool === "AskUserQuestion";
             const s = upsert(id, Object.assign(base, {
                 state: "waiting",
-                tool: "",
+                tool: asking ? "AskUserQuestion" : "",
                 detail: ""
             }));
             Quickshell.execDetached(["notify-send", "-a", "caelestia-shell", "-u", "normal", "-i", "dialog-question", `Claude needs you - ${s.project}`, ev.message ?? ""]);
@@ -83,6 +98,23 @@ Singleton {
             break;
         default:
             upsert(id, base);
+        }
+    }
+
+    // A failed tool call is a brief reaction, not a lasting state
+    Timer {
+        interval: 1000
+        repeat: true
+        running: root.sessions.some(s => s.state === "error")
+        onTriggered: {
+            for (const s of root.sessions) {
+                if (s.state === "error" && Date.now() - s.ts > 5000)
+                    root.upsert(s.id, {
+                        state: "working",
+                        tool: "",
+                        detail: ""
+                    });
+            }
         }
     }
 

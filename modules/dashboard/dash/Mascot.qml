@@ -2,37 +2,77 @@ import QtQuick
 import qs.components
 
 // "Bit": a small squircle that mirrors the state of your AI agents.
-// mood: "sleep" | "idle" | "working" | "waiting"
+// mood: "sleep" | "idle" | "working" | "waiting" | "error"
 Item {
     id: root
 
     property string mood: "idle"
     property string tool: ""
     property bool dancing: false
+    property bool tired: false
     // pointer position in this item's coordinates (NaN = not hovering)
     property point pointer: Qt.point(NaN, NaN)
     property color body: "#6750A4"
     property color eye: "#FFFFFF"
     property color accent: "#B3261E"
 
-    // transient reaction: "" | "happy" | "annoyed" | "dizzy"
+    // transient reaction: "" | "happy" | "annoyed" | "dizzy" | "love"
     property string emote: ""
 
-    readonly property bool sleeping: mood === "sleep"
+    property bool yawning: false
+
+    readonly property bool sleeping: mood === "sleep" && !yawning && !hovering
     readonly property bool waiting: mood === "waiting"
     readonly property bool working: mood === "working"
+    readonly property bool failing: mood === "error"
+    readonly property bool asking: waiting && tool === "AskUserQuestion"
+    readonly property bool thinking: working && tool === ""
     readonly property bool typing: working && /^(Edit|Write|MultiEdit|NotebookEdit|Bash)$/.test(tool)
     readonly property bool hovering: !isNaN(pointer.x)
-    readonly property string badge: waiting ? "priority_high" : !working ? "" : tool === "Bash" ? "terminal" : /^(Edit|Write|MultiEdit|NotebookEdit)$/.test(tool) ? "edit" : /^(Grep|Glob)$/.test(tool) ? "search" : tool === "Read" ? "visibility" : /^Web/.test(tool) ? "language" : /^(Task|Agent)$/.test(tool) ? "hub" : "more_horiz"
+    readonly property string badge: {
+        if (failing)
+            return "error";
+        if (waiting)
+            return asking ? "question_mark" : "priority_high";
+        if (working) {
+            if (thinking)
+                return "more_horiz";
+            if (tool === "Bash")
+                return "terminal";
+            if (/^(Edit|Write|MultiEdit|NotebookEdit)$/.test(tool))
+                return "edit";
+            if (/^(Grep|Glob)$/.test(tool))
+                return "search";
+            if (tool === "Read")
+                return "visibility";
+            if (/^Web/.test(tool))
+                return "language";
+            if (/^(Task|Agent)$/.test(tool))
+                return "hub";
+            return "more_horiz";
+        }
+        return tired && !sleeping ? "water_drop" : "";
+    }
 
     property real blink: 1
     property real scanX: 0
     property real lift: 0
     property real wobble: 0
     property real squish: 1
+    property real roll: 0
+    property real spark: 0
+    property real shakeX: 0
+    property real tilt: asking ? 9 : 0
 
-    readonly property real lookX: hovering && !working ? Math.max(-3.5, Math.min(3.5, (pointer.x - width / 2) / 14)) : scanX
-    readonly property real lookY: typing ? 2.5 : hovering && !working ? Math.max(-2, Math.min(2.5, (pointer.y - height / 2) / 14)) : 0
+    Behavior on tilt {
+        NumberAnimation {
+            duration: 220
+            easing.type: Easing.OutQuad
+        }
+    }
+
+    readonly property real lookX: thinking ? 2.5 : hovering && !working ? Math.max(-3.5, Math.min(3.5, (pointer.x - width / 2) / 14)) : scanX
+    readonly property real lookY: typing ? 2.5 : thinking ? -2 : hovering && !working ? Math.max(-2, Math.min(2.5, (pointer.y - height / 2) / 14)) : 0
 
     implicitWidth: 64
     implicitHeight: 64
@@ -40,9 +80,23 @@ Item {
     property string prevMood: mood
 
     onMoodChanged: {
-        if (mood === "idle" && (prevMood === "working" || prevMood === "waiting"))
+        if (mood === "idle" && (prevMood === "working" || prevMood === "waiting" || prevMood === "error"))
             cheer();
+        else if (mood === "sleep" && prevMood !== "sleep")
+            yawn();
+        else if (mood === "error")
+            shakeAnim.restart();
         prevMood = mood;
+    }
+
+    onHoveringChanged: {
+        if (!hovering && mood === "sleep")
+            yawn();
+    }
+
+    function yawn(): void {
+        yawning = true;
+        yawnTimer.restart();
     }
 
     Component.onCompleted: greet.start()
@@ -52,6 +106,8 @@ Item {
         emoteTimer.interval = 1400;
         emoteTimer.restart();
         hop.restart();
+        rollAnim.restart();
+        sparkAnim.restart();
     }
 
     function poke(): void {
@@ -75,6 +131,72 @@ Item {
 
         interval: 1600
         onTriggered: root.pokes = 0
+    }
+
+    Timer {
+        id: yawnTimer
+
+        interval: 1500
+        onTriggered: root.yawning = false
+    }
+
+    Timer {
+        id: loveTimer
+
+        interval: 1900
+        onTriggered: {
+            if (root.emote === "" && !root.waiting && !root.failing && !root.sleeping) {
+                root.emote = "love";
+                emoteTimer.interval = 2600;
+                emoteTimer.restart();
+            }
+        }
+    }
+
+    SequentialAnimation {
+        id: rollAnim
+
+        NumberAnimation {
+            target: root
+            property: "roll"
+            from: 0
+            to: 360
+            duration: 950
+            easing.type: Easing.InOutQuad
+        }
+        ScriptAction {
+            script: root.roll = 0
+        }
+    }
+
+    NumberAnimation {
+        id: sparkAnim
+
+        target: root
+        property: "spark"
+        from: 0
+        to: 1
+        duration: 1000
+        easing.type: Easing.OutCubic
+    }
+
+    SequentialAnimation {
+        id: shakeAnim
+
+        loops: 3
+        NumberAnimation {
+            target: root
+            property: "shakeX"
+            to: 4
+            duration: 55
+        }
+        NumberAnimation {
+            target: root
+            property: "shakeX"
+            to: -4
+            duration: 55
+        }
+        onFinished: root.shakeX = 0
     }
 
     Timer {
@@ -159,7 +281,7 @@ Item {
 
     // eyes sweep left/right while reading/searching/thinking
     SequentialAnimation {
-        running: root.working && !root.typing
+        running: root.working && !root.typing && !root.thinking
         loops: Animation.Infinite
         NumberAnimation {
             target: root
@@ -204,7 +326,7 @@ Item {
 
     // impatient hop while waiting for you
     SequentialAnimation {
-        running: root.waiting && root.emote === ""
+        running: root.waiting && !root.asking && root.emote === ""
         loops: Animation.Infinite
         PauseAnimation {
             duration: 400
@@ -296,15 +418,23 @@ Item {
         id: shape
 
         width: 48
-        height: root.sleeping ? 40 : 46
+        height: root.sleeping ? 40 : root.yawning ? 51 : 46
         radius: 18
-        x: (root.width - width) / 2
+        x: (root.width - width) / 2 + root.shakeX
+
+        Behavior on height {
+            NumberAnimation {
+                duration: 350
+                easing.type: Easing.InOutQuad
+            }
+        }
+
         y: root.height - height - 4 + root.lift
         color: root.body
-        border.width: root.waiting ? 2 : 0
+        border.width: root.waiting || root.failing ? 2 : 0
         border.color: root.accent
         opacity: root.sleeping ? 0.6 : 1
-        rotation: root.wobble
+        rotation: root.wobble + root.tilt
         transformOrigin: Item.Bottom
         scale: root.squish
         transform: [
@@ -327,6 +457,11 @@ Item {
                     z: 0
                 }
                 angle: -root.lookY * 5
+            },
+            Rotation {
+                origin.x: shape.width / 2
+                origin.y: shape.height / 2
+                angle: root.roll
             }
         ]
 
@@ -432,15 +567,16 @@ Item {
                         readonly property bool happy: root.emote === "happy"
                         readonly property bool dizzy: root.emote === "dizzy"
                         readonly property bool annoyed: root.emote === "annoyed"
+                        readonly property bool love: root.emote === "love"
 
                         width: 10
                         height: 16
 
                         // normal eye
                         Rectangle {
-                            visible: !eyeSlot.happy && !eyeSlot.dizzy
-                            width: root.waiting ? 10 : 8
-                            height: root.sleeping ? 2.5 : eyeSlot.annoyed ? 4 : Math.max(2.5, (root.waiting ? 15 : 11) * root.blink)
+                            visible: !eyeSlot.happy && !eyeSlot.dizzy && !eyeSlot.love
+                            width: root.waiting || root.failing ? 10 : 8
+                            height: root.sleeping ? 2.5 : root.yawning || root.failing ? 3 : eyeSlot.annoyed ? 4 : Math.max(2.5, (root.waiting ? 15 : root.tired ? 6 : 11) * root.blink)
                             radius: Math.min(width, height) / 2
                             gradient: Gradient {
                                 GradientStop {
@@ -484,6 +620,15 @@ Item {
                             }
                         }
 
+                        // love heart eye
+                        Text {
+                            visible: eyeSlot.love
+                            anchors.centerIn: parent
+                            text: "\u2665"
+                            color: "#FF4D6D"
+                            font.pixelSize: 15
+                        }
+
                         // dizzy spiral eye
                         Text {
                             visible: eyeSlot.dizzy
@@ -517,16 +662,53 @@ Item {
                 }
             }
 
+            // love blush
+            Repeater {
+                model: 2
+
+                Rectangle {
+                    required property int index
+
+                    visible: root.emote === "love"
+                    x: parent.width / 2 + (index === 0 ? -23 : 14)
+                    y: parent.height * 0.62
+                    width: 9
+                    height: 5
+                    radius: 2.5
+                    color: "#66FF4D6D"
+                }
+            }
+
             // mouth
             Rectangle {
+                readonly property bool ring: root.waiting || root.yawning || root.emote === "dizzy"
+
                 visible: !root.sleeping
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: parent.height * 0.82
-                width: root.emote === "happy" ? 12 : root.emote === "dizzy" ? 9 : root.emote === "annoyed" ? 9 : root.waiting ? 8 : root.working ? 6 : 10
-                height: root.emote === "happy" ? 6 : root.emote === "dizzy" ? 6 : root.emote === "annoyed" ? 2.5 : root.waiting ? 8 : root.working ? 6 : 3.5
-                radius: root.emote === "happy" ? 6 : Math.min(width, height) / 2
-                color: root.waiting || root.emote === "dizzy" ? "transparent" : root.eye
-                border.width: root.waiting || root.emote === "dizzy" ? 2 : 0
+                width: {
+                    if (root.yawning)
+                        return 10;
+                    if (root.emote === "happy")
+                        return 12;
+                    if (root.emote === "love")
+                        return 11;
+                    if (root.emote === "dizzy" || root.emote === "annoyed" || root.failing)
+                        return 9;
+                    return root.waiting ? 8 : root.working ? 6 : 10;
+                }
+                height: {
+                    if (root.yawning)
+                        return 11;
+                    if (root.emote === "happy" || root.emote === "love" || root.emote === "dizzy")
+                        return 6;
+                    if (root.emote === "annoyed" || root.failing)
+                        return 2.5;
+                    return root.waiting ? 8 : root.working ? 6 : 3.5;
+                }
+                radius: Math.min(width, height) / 2
+                color: ring ? "transparent" : root.eye
+                border.width: ring ? 2 : 0
                 border.color: root.eye
             }
         }
@@ -540,7 +722,7 @@ Item {
         x: shape.x + shape.width - 8
         y: 0
         text: root.badge
-        color: root.waiting ? root.accent : root.body
+        color: root.waiting || root.failing ? root.accent : root.body
 
         SequentialAnimation on y {
             running: badgeIcon.visible
@@ -559,7 +741,7 @@ Item {
     }
 
     Text {
-        visible: root.sleeping
+        visible: root.mood === "sleep" && !root.hovering
         x: shape.x + shape.width - 6
         y: 2
         text: "z"
@@ -569,9 +751,66 @@ Item {
         font.bold: true
     }
 
+    // hearts drifting up while it feels loved
+    Repeater {
+        model: 3
+
+        Text {
+            id: heart
+
+            required property int index
+            property real t: 0
+
+            visible: root.emote === "love"
+            x: shape.x + 8 + index * 14 + Math.sin(t * 6 + index) * 3
+            y: shape.y - 4 - t * 20
+            opacity: 1 - t
+            text: "\u2665"
+            color: "#FF4D6D"
+            font.pixelSize: 10 + index * 2
+
+            SequentialAnimation on t {
+                running: root.emote === "love"
+                loops: Animation.Infinite
+                PauseAnimation {
+                    duration: heart.index * 380
+                }
+                NumberAnimation {
+                    from: 0
+                    to: 1
+                    duration: 1100
+                }
+            }
+        }
+    }
+
+    // sparkles bursting out when an agent finishes
+    Repeater {
+        model: 5
+
+        Text {
+            id: star
+
+            required property int index
+            readonly property real ang: (index * 72 - 90) * Math.PI / 180
+
+            visible: root.spark > 0 && root.spark < 1
+            x: shape.x + shape.width / 2 + Math.cos(ang) * (12 + root.spark * 22) - width / 2
+            y: shape.y + shape.height / 2 + Math.sin(ang) * (12 + root.spark * 22) - height / 2
+            opacity: root.spark < 0.15 ? root.spark / 0.15 : 1 - (root.spark - 0.15) / 0.85
+            text: "\u2726"
+            color: "#F7B32B"
+            font.pixelSize: 11
+        }
+    }
+
     MouseArea {
         anchors.fill: parent
+        hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
         onClicked: root.poke()
+        onEntered: loveTimer.restart()
+        onPositionChanged: loveTimer.restart()
+        onExited: loveTimer.stop()
     }
 }
