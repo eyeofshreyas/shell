@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
@@ -31,6 +32,10 @@ Item {
         return Tr.tr("%1h ago").arg(Math.floor(mins / 60));
     }
 
+    HoverHandler {
+        id: cardHover
+    }
+
     Timer {
         interval: 30000
         running: true
@@ -49,6 +54,23 @@ Item {
 
         RowLayout {
             Layout.fillWidth: true
+
+            Mascot {
+                id: mascot
+
+                readonly property var s: AgentSessions.sessions
+                readonly property var lead: s.find(x => x.state === "waiting") ?? s.find(x => x.state === "working")
+
+                Layout.preferredWidth: implicitWidth
+                Layout.preferredHeight: implicitHeight
+                tool: lead?.tool ?? ""
+                dancing: Players.active?.isPlaying ?? false
+                pointer: cardHover.hovered ? mapFromItem(root, cardHover.point.position) : Qt.point(NaN, NaN)
+                mood: s.some(x => x.state === "waiting") ? "waiting" : s.some(x => x.state === "working") ? "working" : s.length > 0 ? "idle" : "sleep"
+                body: mood === "waiting" ? Colours.palette.m3errorContainer : Colours.palette.m3primary
+                eye: mood === "waiting" ? Colours.palette.m3onErrorContainer : Colours.palette.m3onPrimary
+                accent: Colours.palette.m3error
+            }
 
             StyledText {
                 Layout.fillWidth: true
@@ -126,6 +148,51 @@ Item {
             percentUsed: 100 - (AiCliUsage.codex?.weeklyPercentLeft ?? 100)
             fgColour: Colours.palette.m3outline
             resetText: AiCliUsage.codex?.weeklyReset ? Tr.tr("Resets %1").arg(AiCliUsage.codex.weeklyReset) : ""
+        }
+
+        Repeater {
+            model: ScriptModel {
+                values: AgentSessions.sessions.slice(0, 3)
+            }
+
+            RowLayout {
+                id: agentRow
+
+                required property var modelData
+                readonly property color stateColour: modelData.state === "waiting" ? Colours.palette.m3error : modelData.state === "working" ? Colours.palette.m3primary : Colours.palette.m3outline
+
+                Layout.fillWidth: true
+                spacing: Tokens.spacing.small
+
+                Rectangle {
+                    implicitWidth: 8
+                    implicitHeight: 8
+                    radius: 4
+                    color: agentRow.stateColour
+                }
+
+                StyledText {
+                    Layout.fillWidth: true
+                    elide: Text.ElideRight
+                    text: agentRow.modelData.project || Tr.tr("Claude")
+                    font: Tokens.font.body.builders.small.build()
+                }
+
+                StyledText {
+                    text: agentRow.modelData.state === "waiting" ? Tr.tr("needs you") : agentRow.modelData.state === "working" ? (agentRow.modelData.tool || Tr.tr("working")) : Tr.tr("idle")
+                    color: agentRow.stateColour
+                    font: Tokens.font.body.builders.small.scale(0.85).build()
+                }
+            }
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            visible: text.length > 0
+            elide: Text.ElideMiddle
+            text: mascot.lead?.detail ?? ""
+            color: Colours.palette.m3onSurfaceVariant
+            font: Tokens.font.body.builders.small.scale(0.85).build()
         }
 
         StyledText {

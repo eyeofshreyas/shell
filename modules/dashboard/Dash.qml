@@ -187,7 +187,7 @@ GridLayout {
         Layout.fillHeight: true
         Layout.preferredHeight: claudeUsage.implicitHeight
 
-        visible: GlobalConfig.services.claudeUsage.enabled || GlobalConfig.services.aiCliUsage.enabled
+        visible: GlobalConfig.services.claudeUsage.enabled || GlobalConfig.services.aiCliUsage.enabled || AgentSessions.sessions.length > 0
         radius: Tokens.rounding.large
 
         ClaudeUsageCard {
