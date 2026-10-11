@@ -334,8 +334,13 @@ Item {
                 onClicked: Pomodoro.reset()
             }
 
-            Item {
+            StyledText {
                 Layout.fillWidth: true
+                Layout.leftMargin: Tokens.spacing.small
+                elide: Text.ElideRight
+                text: Pomodoro.taskText
+                color: Colours.palette.m3onSurfaceVariant
+                font: Tokens.font.body.small
             }
 
             StyledText {
@@ -469,6 +474,21 @@ Item {
                 isToggle: true
                 checked: !!row.modelData.dueDate
                 onClicked: root.openDatePicker(row.modelData.id, row.modelData.dueDate ?? "", row.modelData.dueTime ?? "")
+            }
+
+            StyledText {
+                visible: (row.modelData.pomodoros ?? 0) > 0
+                text: `${row.modelData.pomodoros}x`
+                color: Colours.palette.m3onSurfaceVariant
+                font: Tokens.font.body.small
+            }
+
+            IconButton {
+                icon: "target"
+                type: IconButton.Text
+                isToggle: true
+                checked: Pomodoro.taskId === row.modelData.id
+                onClicked: Pomodoro.toggleTask(row.modelData.id)
             }
 
             StyledText {

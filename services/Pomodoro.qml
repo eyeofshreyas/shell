@@ -13,6 +13,10 @@ Singleton {
     property bool running: false
     property int secondsLeft: focusSecs
     property int sessionsToday: 0
+    property string taskId: ""
+
+    readonly property string taskText: Todos.items.find(i => i.id === taskId)?.text ?? ""
+    readonly property bool active: running || secondsLeft !== (focus ? focusSecs : breakSecs)
 
     readonly property string label: `${String(Math.floor(secondsLeft / 60)).padStart(2, "0")}:${String(secondsLeft % 60).padStart(2, "0")}`
 
@@ -26,6 +30,10 @@ Singleton {
             endsAt = Date.now() + secondsLeft * 1000;
             running = true;
         }
+    }
+
+    function toggleTask(id: string): void {
+        taskId = taskId === id ? "" : id;
     }
 
     function reset(): void {
@@ -47,9 +55,13 @@ Singleton {
             if (root.secondsLeft > 0)
                 return;
 
-            if (root.focus)
+            const task = root.taskText;
+            if (root.focus) {
                 root.sessionsToday++;
-            Quickshell.execDetached(["notify-send", "-a", "caelestia-shell", "-u", "normal", "-i", "timer", root.focus ? "Focus session done" : "Break over", root.focus ? "Take a 5 minute break." : "Time to focus."]);
+                if (task)
+                    Todos.addPomodoro(root.taskId);
+            }
+            Quickshell.execDetached(["notify-send", "-a", "caelestia-shell", "-u", "normal", "-i", "timer", root.focus ? "Focus session done" : "Break over", root.focus ? (task ? `Finished: ${task}` : "Take a 5 minute break.") : (task ? `Back to: ${task}` : "Time to focus.")]);
             root.skip();
         }
     }

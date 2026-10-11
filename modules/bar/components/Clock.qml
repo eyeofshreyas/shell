@@ -129,6 +129,40 @@ StyledRect {
             }
         }
 
+        ColumnLayout {
+            Layout.alignment: Qt.AlignHCenter
+            visible: Pomodoro.active
+            spacing: 0
+
+            StyledRect {
+                Layout.fillWidth: true
+                Layout.topMargin: 4
+                Layout.bottomMargin: Tokens.padding.extraSmall
+                implicitHeight: 1
+                color: Colours.palette.m3outlineVariant
+            }
+
+            MaterialIcon {
+                Layout.alignment: Qt.AlignHCenter
+                text: Pomodoro.focus ? "timer" : "coffee"
+                color: Pomodoro.running ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+            }
+
+            StyledText {
+                Layout.alignment: Qt.AlignHCenter
+                text: Pomodoro.label.slice(0, 2)
+                font: Tokens.font.body.builders.small.scale(0.9).build()
+                color: Pomodoro.running ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+            }
+
+            StyledText {
+                Layout.alignment: Qt.AlignHCenter
+                text: Pomodoro.label.slice(3)
+                font: Tokens.font.body.builders.small.scale(0.9).build()
+                color: Pomodoro.running ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+            }
+        }
+
         Loader {
             Layout.topMargin: -parent.spacing - 4
             Layout.alignment: Qt.AlignHCenter
