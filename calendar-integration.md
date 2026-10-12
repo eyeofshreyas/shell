@@ -16,7 +16,7 @@ nothing until you enable it and install the `gws` CLI it depends on.
 ### Install gws
 
 Pick one:
-
+bust
 ```bash
 npm install -g @googleworkspace/cli        # needs a user-writable npm prefix
 cargo install --git https://github.com/googleworkspace/cli --locked

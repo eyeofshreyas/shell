@@ -32,6 +32,13 @@ Item {
                 enabled: true
             },
             {
+                component: habitsComponent,
+                iconName: "task_alt",
+                text: Tr.tr("Habits"),
+                // ponytail: no Config.dashboard.showHabits toggle, same as the To-do tab above
+                enabled: true
+            },
+            {
                 component: mediaComponent,
                 iconName: "queue_music",
                 text: Tr.tr("Media"),
@@ -173,6 +180,12 @@ Item {
                 id: todoComponent
 
                 Todo {}
+            }
+
+            Component {
+                id: habitsComponent
+
+                Habits {}
             }
 
             Component {

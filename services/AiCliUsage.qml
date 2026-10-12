@@ -50,6 +50,8 @@ Singleton {
         fetchProc.running = true;
     }
 
+    onEnabledChanged: fetch()
+
     Process {
         id: fetchProc
 

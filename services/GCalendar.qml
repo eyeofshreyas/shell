@@ -69,8 +69,10 @@ Singleton {
         const parsed = [];
         for (const ev of data) {
             const startStr = ev.start ?? "";
-            const startDate = new Date(startStr);
             const isAllDay = startStr.length === 10;
+            // Date-only strings parse as UTC midnight per spec; use local midnight instead
+            // so all-day events don't drop out of `upcoming` early in UTC+ timezones.
+            const startDate = isAllDay ? new Date(startStr + "T00:00:00") : new Date(startStr);
             let dateKey;
             if (isAllDay) {
                 dateKey = startStr;
@@ -111,6 +113,8 @@ Singleton {
         fetchProc.running = true;
     }
 
+    onEnabledChanged: fetch()
+
     // Load cached events on startup
     FileView {
         id: cache
@@ -139,6 +143,10 @@ Singleton {
             onStreamFinished: {
                 try {
                     const json = JSON.parse(text);
+                    if (json.error) {
+                        console.warn(lc, `gws returned an error, keeping cached events: ${json.error.message ?? json.error}`);
+                        return;
+                    }
                     root.events = root.parseEvents(json.events ?? []);
                     root.saveCache();
                 } catch (e) {

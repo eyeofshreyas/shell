@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Caelestia.Config
 import qs.services
+import qs.modules.launcher.services
 
 Scope {
     Component.onCompleted: {
@@ -13,6 +14,7 @@ Scope {
         Players;
         Brightness;
         Weather.reload();
+        Clipboard;
         AgentSessions;
 
         if (GlobalConfig.utilities.vpn.enabled)

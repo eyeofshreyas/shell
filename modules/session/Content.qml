@@ -80,6 +80,8 @@ Column {
         KeyNavigation.up: hibernate
     }
 
+    
+
     component SessionButton: IconButton {
         id: button
 
