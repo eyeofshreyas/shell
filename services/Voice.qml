@@ -60,7 +60,7 @@ Singleton {
                 root.notify("Install whisper.cpp (whisper-cli) to talk to Bit");
             else if (code === 126)
                 root.notify("Put a whisper model at ~/.local/share/caelestia/whisper-model.bin");
-            else if (code !== 0 || text.length === 0 || text.startsWith("["))
+            else if (code !== 0 || text.length === 0 || /^[\[(].*[\])]$/.test(text))
                 root.notify("Did not catch that");
             else
                 root.send(text);
