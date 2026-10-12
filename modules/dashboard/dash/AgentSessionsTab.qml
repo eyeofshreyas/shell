@@ -6,6 +6,7 @@ import Quickshell
 import Caelestia.Config
 import Caelestia.I18n
 import qs.components
+import qs.components.containers
 import qs.components.controls
 import qs.services
 
@@ -84,39 +85,92 @@ ColumnLayout {
                     values: session.modelData.edits.slice(0, 3)
                 }
 
-                RowLayout {
+                ColumnLayout {
                     id: edit
 
                     required property var modelData
+                    property bool open
 
                     Layout.fillWidth: true
                     Layout.leftMargin: 16
-                    spacing: Tokens.spacing.small
+                    spacing: 2
 
-                    MaterialIcon {
-                        text: "edit"
-                        color: Colours.palette.m3outline
-                        fontStyle: Tokens.font.icon.small
-                    }
-
-                    StyledText {
+                    Item {
                         Layout.fillWidth: true
-                        elide: Text.ElideMiddle
-                        text: edit.modelData.file
-                        color: Colours.palette.m3onSurfaceVariant
-                        font: Tokens.font.mono.small
+                        implicitHeight: editRow.implicitHeight
+
+                        RowLayout {
+                            id: editRow
+
+                            anchors.fill: parent
+                            spacing: Tokens.spacing.small
+
+                            MaterialIcon {
+                                text: edit.open ? "expand_more" : "chevron_right"
+                                color: Colours.palette.m3outline
+                                fontStyle: Tokens.font.icon.small
+                            }
+
+                            StyledText {
+                                Layout.fillWidth: true
+                                elide: Text.ElideMiddle
+                                text: edit.modelData.file
+                                color: Colours.palette.m3onSurfaceVariant
+                                font: Tokens.font.mono.small
+                            }
+
+                            StyledText {
+                                text: `+${edit.modelData.add}`
+                                color: Colours.palette.m3tertiary
+                                font: Tokens.font.mono.small
+                            }
+
+                            StyledText {
+                                text: `−${edit.modelData.del}`
+                                color: Colours.palette.m3error
+                                font: Tokens.font.mono.small
+                            }
+                        }
+
+                        StateLayer {
+                            onClicked: edit.open = !edit.open
+                        }
                     }
 
-                    StyledText {
-                        text: `+${edit.modelData.add}`
-                        color: Colours.palette.m3tertiary
-                        font: Tokens.font.mono.small
-                    }
+                    StyledRect {
+                        Layout.fillWidth: true
+                        visible: edit.open && edit.modelData.lines.length > 0
+                        implicitHeight: Math.min(diff.implicitHeight, 180) + Tokens.padding.small * 2
+                        radius: Tokens.rounding.small
+                        color: Colours.tPalette.m3surfaceContainerHigh
+                        clip: true
 
-                    StyledText {
-                        text: `−${edit.modelData.del}`
-                        color: Colours.palette.m3error
-                        font: Tokens.font.mono.small
+                        StyledFlickable {
+                            anchors.fill: parent
+                            anchors.margins: Tokens.padding.small
+                            contentHeight: diff.implicitHeight
+                            contentWidth: width
+
+                            Column {
+                                id: diff
+
+                                width: parent.width
+
+                                Repeater {
+                                    model: edit.modelData.lines
+
+                                    StyledText {
+                                        required property string modelData
+
+                                        width: diff.width
+                                        elide: Text.ElideRight
+                                        text: modelData
+                                        color: modelData[0] === "+" ? Colours.palette.m3tertiary : modelData[0] === "-" ? Colours.palette.m3error : Colours.palette.m3onSurfaceVariant
+                                        font: Tokens.font.mono.small
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

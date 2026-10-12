@@ -118,11 +118,22 @@ Item {
                 badge: AgentSessions.sessions.length
                 onClicked: root.tab = 1
             }
+
+            Chip {
+                label: Tr.tr("Week")
+                current: root.tab === 2
+                onClicked: root.tab = 2
+            }
         }
 
         AgentSessionsTab {
             Layout.fillWidth: true
             visible: root.tab === 1
+        }
+
+        AgentRecapTab {
+            Layout.fillWidth: true
+            visible: root.tab === 2
         }
 
         ColumnLayout {

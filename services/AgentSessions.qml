@@ -3,12 +3,13 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import qs.utils
 
 Singleton {
     id: root
 
     // [{ id, agent, pid, project, state: "idle" | "working" | "waiting" | "error", tool, detail, edits, ts }], newest first
-    // edits: [{ file, path, add, del, ts }], newest first
+    // edits: [{ file, path, add, del, lines, ts }], newest first
     property list<var> sessions: []
     // Permission requests and questions waiting on a click, oldest first:
     // [{ id, sessionId, agent, project, tool, summary, questions, hasSuggestions, conn }]
@@ -16,7 +17,97 @@ Singleton {
 
     readonly property string socketPath: `${Quickshell.env("XDG_RUNTIME_DIR") || `/run/user/${Quickshell.env("UID")}`}/caelestia-agents.sock`
     readonly property var editTools: ["Edit", "MultiEdit", "Write", "replace", "write_file"]
+    readonly property int maxDiffLines: 80
+    // Agents whose relay waits for a click and can hand the decision back
+    readonly property var deciders: ["", "codex", "copilot", "muse"]
     property int approvalSeq: 0
+    // Local coding stats per day: { "YYYY-MM-DD": { sessions, files, add, del, commands, permissions, agents, projects, longest } }
+    property var stats: ({})
+    property bool statsLoaded: false
+
+    function dayKey(d: date): string {
+        const pad = n => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    }
+
+    function bump(fn: var): void {
+        if (!statsLoaded)
+            return;
+        const k = dayKey(new Date());
+        const day = Object.assign({
+            sessions: 0,
+            files: [],
+            add: 0,
+            del: 0,
+            commands: 0,
+            permissions: 0,
+            agents: {},
+            projects: {},
+            longest: 0
+        }, stats[k] ?? {});
+        fn(day);
+        stats = Object.assign({}, stats, {
+            [k]: day
+        });
+        saveTimer.restart();
+    }
+
+    function tally(map: var, name: string): void {
+        map[name] = (map[name] ?? 0) + 1;
+    }
+
+    function noteLength(id: string): void {
+        const s = sessions.find(x => x.id === id);
+        if (s)
+            bump(d => d.longest = Math.max(d.longest, Date.now() - s.started));
+    }
+
+    // Totals over the last `days` days (today included), with the week's standouts
+    function recap(days: int): var {
+        const out = {
+            sessions: 0,
+            files: 0,
+            add: 0,
+            del: 0,
+            commands: 0,
+            permissions: 0,
+            longest: 0,
+            topAgent: "",
+            topProject: "",
+            busiestDay: ""
+        };
+        const files = new Set();
+        const agents = {};
+        const projects = {};
+        let busiest = 0;
+        const day = new Date();
+        for (let i = 0; i < days; i++, day.setDate(day.getDate() - 1)) {
+            const d = stats[dayKey(day)];
+            if (!d)
+                continue;
+            out.sessions += d.sessions;
+            out.add += d.add;
+            out.del += d.del;
+            out.commands += d.commands;
+            out.permissions += d.permissions;
+            out.longest = Math.max(out.longest, d.longest);
+            d.files.forEach(f => files.add(f));
+            for (const a in d.agents)
+                agents[a] = (agents[a] ?? 0) + d.agents[a];
+            for (const p in d.projects)
+                projects[p] = (projects[p] ?? 0) + d.projects[p];
+            const work = d.add + d.del + d.commands + d.sessions;
+            if (work > busiest) {
+                busiest = work;
+                out.busiestDay = Qt.formatDate(day, "dddd");
+            }
+        }
+        const top = m => Object.keys(m).sort((a, b) => m[b] - m[a])[0] ?? "";
+        out.files = files.size;
+        out.topAgent = top(agents);
+        out.topProject = top(projects);
+        return out;
+    }
 
     function upsert(id: string, patch: var): var {
         const old = sessions.find(s => s.id === id);
@@ -28,16 +119,33 @@ Singleton {
             state: "idle",
             tool: "",
             detail: "",
-            edits: []
+            edits: [],
+            started: Date.now()
         }, old ?? {}, patch, {
             ts: Date.now()
         });
         sessions = [next, ...sessions.filter(s => s.id !== id)];
+        if (!old)
+            bump(d => {
+                d.sessions++;
+                tally(d.agents, next.agent || "claude");
+                if (next.project)
+                    tally(d.projects, next.project);
+            });
         return next;
     }
 
     function lineCount(text: var): int {
         return text ? String(text).split("\n").length : 0;
+    }
+
+    function diffLines(before: var, after: var): var {
+        const out = [];
+        if (before)
+            String(before).split("\n").forEach(l => out.push("-" + l));
+        if (after)
+            String(after).split("\n").forEach(l => out.push("+" + l));
+        return out;
     }
 
     // Lines added/removed by a finished edit tool call, or null if it isn't one.
@@ -52,28 +160,37 @@ Singleton {
             path,
             add: 0,
             del: 0,
+            lines: [],
             ts: Date.now()
+        };
+        const push = (sign, text) => {
+            if (stat.lines.length < maxDiffLines)
+                stat.lines.push(sign + String(text).slice(0, 200));
         };
 
         const patch = ev.tool_response?.structuredPatch;
-        if (Array.isArray(patch)) {
+        if (Array.isArray(patch) && patch.length > 0) {
             for (const hunk of patch)
                 for (const l of hunk.lines ?? []) {
                     if (l[0] === "+")
                         stat.add++;
                     else if (l[0] === "-")
                         stat.del++;
+                    push(l[0], l.slice(1));
                 }
         } else if (ev.tool_name === "MultiEdit") {
             for (const e of inp.edits ?? []) {
                 stat.add += lineCount(e.new_string);
                 stat.del += lineCount(e.old_string);
+                diffLines(e.old_string, e.new_string).forEach(l => push(l[0], l.slice(1)));
             }
         } else if (ev.tool_name === "Write" || ev.tool_name === "write_file") {
             stat.add = lineCount(inp.content);
+            diffLines("", inp.content).forEach(l => push(l[0], l.slice(1)));
         } else {
             stat.add = lineCount(inp.new_string);
             stat.del = lineCount(inp.old_string);
+            diffLines(inp.old_string, inp.new_string).forEach(l => push(l[0], l.slice(1)));
         }
         return stat;
     }
@@ -106,6 +223,7 @@ Singleton {
 
         switch (ev.hook_event_name) {
         case "SessionEnd":
+            noteLength(id);
             sessions = sessions.filter(s => s.id !== id);
             approvals = approvals.filter(a => a.sessionId !== id);
             break;
@@ -117,7 +235,7 @@ Singleton {
             }));
             break;
         case "PermissionRequest": {
-            if (!conn)
+            if (!conn || !deciders.includes(ev.agent ?? ""))
                 break;
             const s = upsert(id, Object.assign(base, {
                 state: "waiting",
@@ -150,6 +268,15 @@ Singleton {
         }
         case "PostToolUse": {
             const stat = editStat(ev);
+            if (stat)
+                bump(d => {
+                    d.add += stat.add;
+                    d.del += stat.del;
+                    if (!d.files.includes(stat.path))
+                        d.files.push(stat.path);
+                });
+            else if (["Bash", "run_shell_command", "shell", "bash"].includes(ev.tool_name))
+                bump(d => d.commands++);
             upsert(id, Object.assign(base, {
                 state: "working",
                 tool: "",
@@ -160,6 +287,7 @@ Singleton {
             break;
         }
         case "PostToolUseFailure":
+        case "StopFailure":
             upsert(id, Object.assign(base, {
                 state: "error",
                 tool: ev.tool_name ?? "",
@@ -177,6 +305,8 @@ Singleton {
             break;
         }
         case "Stop":
+        case "Interrupt":
+            noteLength(id);
             upsert(id, Object.assign(base, {
                 state: "idle",
                 tool: "",
@@ -195,6 +325,8 @@ Singleton {
             return;
 
         approvals = approvals.filter(x => x.id !== approvalId);
+        if (decision !== "ask")
+            bump(d => d.permissions++);
         if (a.conn) {
             a.conn.write(JSON.stringify({
                 decision,
@@ -243,6 +375,38 @@ Singleton {
         repeat: true
         running: root.sessions.length > 0
         onTriggered: root.sessions = root.sessions.filter(s => Date.now() - s.ts < 30 * 60000)
+    }
+
+    Timer {
+        id: saveTimer
+
+        interval: 2000
+        onTriggered: {
+            const keep = {};
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - 60);
+            for (const k in root.stats)
+                if (k >= root.dayKey(cutoff))
+                    keep[k] = root.stats[k];
+            root.stats = keep;
+            statsFile.setText(JSON.stringify(keep));
+        }
+    }
+
+    FileView {
+        id: statsFile
+
+        printErrors: false
+        path: `${Paths.data}/agent-stats.json`
+        onLoaded: {
+            try {
+                root.stats = JSON.parse(text());
+            } catch (e) {
+                console.warn("agent-stats.json unreadable, starting fresh");
+            }
+            root.statsLoaded = true;
+        }
+        onLoadFailed: root.statsLoaded = true
     }
 
     SocketServer {
