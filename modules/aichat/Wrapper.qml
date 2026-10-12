@@ -3,12 +3,15 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Caelestia.Config
 import qs.components
+import qs.services
 
 Item {
     id: root
 
     required property ScreenState screenState
     required property var panels
+
+    readonly property real panelWidth: Tokens.sizes.sidebar.width
 
     visible: width > 0
     implicitWidth: 0
@@ -18,7 +21,7 @@ Item {
         when: root.screenState.aiChat
 
         PropertyChanges {
-            root.implicitWidth: Tokens.sizes.sidebar.width
+            root.implicitWidth: root.panelWidth
         }
     }
 

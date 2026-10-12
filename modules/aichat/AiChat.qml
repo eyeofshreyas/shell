@@ -7,6 +7,7 @@ import qs.components.effects
 import qs.services
 import qs.utils
 import Caelestia.Config
+import Caelestia.I18n
 import Caelestia
 import Quickshell
 import QtQuick
@@ -26,32 +27,60 @@ Item {
         // Compact header
         StyledRect {
             Layout.fillWidth: true
-            implicitHeight: headerRow.implicitHeight + Appearance.padding.small * 2
+            implicitHeight: headerRow.implicitHeight + Tokens.padding.small * 2
 
             color: "transparent"
 
             RowLayout {
                 id: headerRow
                 anchors.fill: parent
-                anchors.margins: Appearance.padding.small
-                spacing: Appearance.spacing.normal
+                anchors.margins: Tokens.padding.small
+                spacing: Tokens.spacing.medium
 
                 StyledText {
                     text: qsTr("Chat")
-                    font.pointSize: Appearance.font.size.large
+                    font.pointSize: Tokens.font.body.large.pointSize
                     font.weight: Font.Medium
                     color: Colours.palette.m3onSurface
                 }
 
                 Item { Layout.fillWidth: true }
 
+                // Provider switcher
+                SplitButton {
+                    id: providerSelector
+
+                    type: SplitButton.Tonal
+                    horizontalPadding: Tokens.padding.medium
+                    verticalPadding: Tokens.padding.small
+                    stateLayer.disabled: true
+
+                    active: menuItems.find(m => m.modelData === Ai.currentProvider) ?? menuItems[0]
+                    menuItems: providerVariants.instances
+                    fallbackText: Tr.tr("No Provider")
+
+                    menu.onItemSelected: item => Ai.setProvider(item.modelData)
+
+                    Variants {
+                        id: providerVariants
+
+                        model: Ai.providers
+
+                        MenuItem {
+                            required property string modelData
+
+                            text: Ai.providerNames[modelData] ?? modelData
+                        }
+                    }
+                }
+
                 // Model switcher
                 SplitButton {
                     id: modelSelector
 
                     type: SplitButton.Tonal
-                    horizontalPadding: Appearance.padding.normal
-                    verticalPadding: Appearance.padding.small
+                    horizontalPadding: Tokens.padding.medium
+                    verticalPadding: Tokens.padding.small
                     stateLayer.disabled: true
 
                     active: menuItems.find(m => m.modelData === Ai.currentModelId) ?? menuItems[0]
@@ -66,7 +95,7 @@ Item {
                     Variants {
                         id: modelVariants
 
-                        model: Ai.modelList
+                        model: Ai.modelsOf(Ai.currentProvider)
 
                         MenuItem {
                             required property string modelData
@@ -92,13 +121,13 @@ Item {
                 id: messageList
 
                 anchors.fill: parent
-                anchors.leftMargin: Appearance.padding.large
-                anchors.rightMargin: Appearance.padding.large
-                anchors.topMargin: Appearance.padding.normal
-                anchors.bottomMargin: Appearance.padding.small
+                anchors.leftMargin: Tokens.padding.large
+                anchors.rightMargin: Tokens.padding.large
+                anchors.topMargin: Tokens.padding.medium
+                anchors.bottomMargin: Tokens.padding.small
 
                 clip: true
-                spacing: Appearance.spacing.small
+                spacing: Tokens.spacing.small
 
                 model: Ai.messageIDs
 
@@ -119,20 +148,20 @@ Item {
             ColumnLayout {
                 anchors.centerIn: parent
                 visible: messageList.count === 0
-                spacing: Appearance.spacing.small
+                spacing: Tokens.spacing.small
 
                 MaterialIcon {
                     Layout.alignment: Qt.AlignHCenter
                     text: "chat_bubble_outline"
                     color: Colours.palette.m3outline
-                    font.pointSize: Appearance.font.size.extraLarge * 2
+                    fontStyle: Tokens.font.icon.extraLarge
                 }
 
                 StyledText {
                     Layout.alignment: Qt.AlignHCenter
                     text: qsTr("Start a conversation")
                     color: Colours.palette.m3onSurfaceVariant
-                    font.pointSize: Appearance.font.size.normal
+                    font.pointSize: Tokens.font.body.medium.pointSize
                 }
             }
         }
@@ -142,7 +171,7 @@ Item {
             Layout.fillWidth: true
             Layout.preferredHeight: inputColumn.height
             Layout.minimumHeight: inputColumn.height
-            Layout.topMargin: Appearance.padding.normal
+            Layout.topMargin: Tokens.padding.medium
 
             ColumnLayout {
                 id: inputColumn
@@ -150,26 +179,26 @@ Item {
                 anchors.bottom: parent.bottom
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.margins: Appearance.padding.normal
-                spacing: Appearance.spacing.small
+                anchors.margins: Tokens.padding.medium
+                spacing: Tokens.spacing.small
 
                 // Compact status bar / inline API key entry
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: Appearance.spacing.small
+                    spacing: Tokens.spacing.small
                     visible: !Ai.currentModelHasApiKey
 
                     MaterialIcon {
                         text: "warning"
                         color: Colours.palette.m3error
-                        font.pointSize: Appearance.font.size.small
+                        fontStyle: Tokens.font.icon.small
                     }
 
                     StyledTextField {
                         id: apiKeyField
 
                         Layout.fillWidth: true
-                        font.pointSize: Appearance.font.size.small
+                        font.pointSize: Tokens.font.body.small.pointSize
                         placeholderText: qsTr("API key required — paste it here")
                         echoMode: TextInput.Password
 
@@ -190,13 +219,13 @@ Item {
                     Layout.preferredHeight: 48
 
                     color: Colours.palette.m3surfaceContainerHighest
-                    radius: Appearance.rounding.full
+                    radius: Tokens.rounding.full
 
                     RowLayout {
                         anchors.fill: parent
-                        anchors.leftMargin: Appearance.padding.large
-                        anchors.rightMargin: Appearance.padding.small
-                        spacing: Appearance.spacing.small
+                        anchors.leftMargin: Tokens.padding.large
+                        anchors.rightMargin: Tokens.padding.small
+                        spacing: Tokens.spacing.small
 
                         TextInput {
                             id: inputField
@@ -205,8 +234,7 @@ Item {
                             Layout.fillHeight: true
 
                             color: Colours.palette.m3onSurface
-                            font.family: Appearance.font.family.sans
-                            font.pointSize: Appearance.font.size.normal
+                            font.pointSize: Tokens.font.body.medium.pointSize
                             verticalAlignment: TextInput.AlignVCenter
 
                             focus: true
@@ -315,7 +343,7 @@ Item {
         readonly property bool isInterface: messageRole === "interface"
 
         visible: message !== undefined && !isInterface
-        implicitHeight: visible ? messageBubble.implicitHeight + Appearance.spacing.small : 0
+        implicitHeight: visible ? messageBubble.implicitHeight + Tokens.spacing.small : 0
 
         // Listen for message updates and increment revision to trigger re-evaluation
         Connections {
@@ -339,7 +367,7 @@ Item {
 
             implicitWidth: {
                 const maxWidth = parent.width * 0.75;
-                const padding = Appearance.padding.normal * 2;
+                const padding = Tokens.padding.medium * 2;
                 if (messageContent.length > 0) {
                     const textWidth = messageText.implicitWidth + padding;
                     return Math.min(maxWidth, Math.max(60, textWidth));
@@ -349,9 +377,9 @@ Item {
                 }
             }
             implicitHeight: {
-                const padding = Appearance.padding.normal;
+                const padding = Tokens.padding.medium;
                 if (messageContent.length > 0) {
-                    const bottomPadding = isUser ? padding : Appearance.padding.small;
+                    const bottomPadding = isUser ? padding : Tokens.padding.small;
                     return messageText.height + padding + bottomPadding;
                 } else {
                     // Thinking dots height
@@ -362,7 +390,7 @@ Item {
             color: isUser
                 ? Colours.palette.m3primaryContainer
                 : Colours.palette.m3surfaceContainerHigh
-            radius: Appearance.rounding.large
+            radius: Tokens.rounding.large
 
             // Subtle shadow for depth
             layer.enabled: true
@@ -381,10 +409,10 @@ Item {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
-                anchors.leftMargin: Appearance.padding.normal
-                anchors.rightMargin: Appearance.padding.normal
-                anchors.topMargin: Appearance.padding.normal
-                anchors.bottomMargin: isUser ? Appearance.padding.normal : Appearance.padding.small
+                anchors.leftMargin: Tokens.padding.medium
+                anchors.rightMargin: Tokens.padding.medium
+                anchors.topMargin: Tokens.padding.medium
+                anchors.bottomMargin: isUser ? Tokens.padding.medium : Tokens.padding.small
 
                 visible: messageContent.length > 0
                 text: isUser ? messageContent : formatText(messageContent)
@@ -393,7 +421,7 @@ Item {
                     : Colours.palette.m3onSurface
                 wrapMode: Text.Wrap
                 textFormat: isUser ? Text.PlainText : Text.RichText
-                font.pointSize: Appearance.font.size.normal
+                font.pointSize: Tokens.font.body.medium.pointSize
             }
 
             // Thinking indicator (animated dots)

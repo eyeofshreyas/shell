@@ -4,6 +4,7 @@ pragma ComponentBehavior: Bound
 import qs.utils
 import qs.utils
 import Caelestia.Config
+import Caelestia.I18n
 import Caelestia
 import Quickshell
 import Quickshell.Io
@@ -24,6 +25,7 @@ Singleton {
     property Component geminiApiStrategy: GeminiApiStrategy {}
     property Component openaiApiStrategy: OpenAiApiStrategy {}
     property Component mistralApiStrategy: MistralApiStrategy {}
+    property Component anthropicApiStrategy: AnthropicApiStrategy {}
     readonly property string interfaceRole: "interface"
     readonly property string apiKeyEnvVarName: "API_KEY"
 
@@ -260,6 +262,9 @@ Singleton {
             ],
             "search": [],
             "none": [],
+        },
+        "anthropic": {
+            "none": [],
         }
     }
     property list<var> availableTools: Object.keys(root.tools[models[currentModelId]?.api_format])
@@ -334,6 +339,71 @@ Singleton {
             "key_get_description": qsTr("**Pricing**: free. Data used for training.\n\n**Instructions**: Log into Google account, allow AI Studio to create Google Cloud project or whatever it asks, go back and click Get API key"),
             "api_format": "gemini",
         }),
+        "claude-sonnet-5": aiModelComponent.createObject(this, {
+            "name": "Claude Sonnet 5",
+            "icon": "anthropic-symbolic",
+            "description": Tr.tr("Online | Anthropic's model\nBalanced model for everyday chat and coding"),
+            "homepage": "https://www.anthropic.com/claude",
+            "endpoint": "https://api.anthropic.com/v1/messages",
+            "model": "claude-sonnet-5",
+            "requires_key": true,
+            "key_id": "anthropic",
+            "key_get_link": "https://console.anthropic.com/settings/keys",
+            "key_get_description": Tr.tr("**Pricing**: pay as you go.\n\n**Instructions**: Log into the Anthropic Console, go to API keys, click Create Key"),
+            "api_format": "anthropic",
+        }),
+        "claude-opus-5": aiModelComponent.createObject(this, {
+            "name": "Claude Opus 5",
+            "icon": "anthropic-symbolic",
+            "description": Tr.tr("Online | Anthropic's model\nMost capable Claude model, slower and pricier"),
+            "homepage": "https://www.anthropic.com/claude",
+            "endpoint": "https://api.anthropic.com/v1/messages",
+            "model": "claude-opus-5",
+            "requires_key": true,
+            "key_id": "anthropic",
+            "key_get_link": "https://console.anthropic.com/settings/keys",
+            "key_get_description": Tr.tr("**Pricing**: pay as you go.\n\n**Instructions**: Log into the Anthropic Console, go to API keys, click Create Key"),
+            "api_format": "anthropic",
+        }),
+        "claude-haiku-4-5": aiModelComponent.createObject(this, {
+            "name": "Claude Haiku 4.5",
+            "icon": "anthropic-symbolic",
+            "description": Tr.tr("Online | Anthropic's model\nFastest and cheapest Claude model"),
+            "homepage": "https://www.anthropic.com/claude",
+            "endpoint": "https://api.anthropic.com/v1/messages",
+            "model": "claude-haiku-4-5-20251001",
+            "requires_key": true,
+            "key_id": "anthropic",
+            "key_get_link": "https://console.anthropic.com/settings/keys",
+            "key_get_description": Tr.tr("**Pricing**: pay as you go.\n\n**Instructions**: Log into the Anthropic Console, go to API keys, click Create Key"),
+            "api_format": "anthropic",
+        }),
+        "openai-gpt-4.1": aiModelComponent.createObject(this, {
+            "name": "GPT-4.1",
+            "icon": "openai-symbolic",
+            "description": Tr.tr("Online | OpenAI's model\nCapable general model"),
+            "homepage": "https://platform.openai.com",
+            "endpoint": "https://api.openai.com/v1/chat/completions",
+            "model": "gpt-4.1",
+            "requires_key": true,
+            "key_id": "openai",
+            "key_get_link": "https://platform.openai.com/api-keys",
+            "key_get_description": Tr.tr("**Pricing**: pay as you go.\n\n**Instructions**: Log into the OpenAI platform, go to API keys, click Create new secret key"),
+            "api_format": "openai",
+        }),
+        "openai-gpt-4.1-mini": aiModelComponent.createObject(this, {
+            "name": "GPT-4.1 mini",
+            "icon": "openai-symbolic",
+            "description": Tr.tr("Online | OpenAI's model\nFast and cheap"),
+            "homepage": "https://platform.openai.com",
+            "endpoint": "https://api.openai.com/v1/chat/completions",
+            "model": "gpt-4.1-mini",
+            "requires_key": true,
+            "key_id": "openai",
+            "key_get_link": "https://platform.openai.com/api-keys",
+            "key_get_description": Tr.tr("**Pricing**: pay as you go.\n\n**Instructions**: Log into the OpenAI platform, go to API keys, click Create new secret key"),
+            "api_format": "openai",
+        }),
         "mistral-medium-3": aiModelComponent.createObject(this, {
             "name": "Mistral Medium 3",
             "icon": "mistral-symbolic",
@@ -374,12 +444,24 @@ Singleton {
         }),
     }
     property var modelList: Object.keys(root.models)
+    readonly property var providerNames: ({
+        "anthropic": "Claude",
+        "gemini": "Gemini",
+        "openai": "OpenAI",
+        "ollama": "Ollama",
+        "mistral": "Mistral",
+        "github": "GitHub Models",
+        "openrouter": "OpenRouter"
+    })
+    readonly property string currentProvider: providerOf(currentModelId)
+    readonly property var providers: modelList.map(id => providerOf(id)).filter((p, i, all) => p && all.indexOf(p) === i)
     property var currentModelId: GlobalConfig.ai?.model || modelList[0]
 
     property var apiStrategies: {
         "openai": openaiApiStrategy.createObject(this),
         "gemini": geminiApiStrategy.createObject(this),
         "mistral": mistralApiStrategy.createObject(this),
+        "anthropic": anthropicApiStrategy.createObject(this),
     }
     property ApiStrategy currentApiStrategy: apiStrategies[models[currentModelId]?.api_format || "openai"]
 
@@ -544,6 +626,20 @@ Singleton {
                 .arg(model.name).arg(model.key_get_link).arg(model.key_get_description ?? qsTr("<i>No further instruction provided</i>")).arg("/key"), 
             Ai.interfaceRole
         );
+    }
+
+    function providerOf(modelId) {
+        const model = models[modelId];
+        return !model ? "" : model.requires_key ? model.key_id : "ollama";
+    }
+
+    function modelsOf(provider) {
+        return modelList.filter(id => providerOf(id) === provider);
+    }
+
+    function setProvider(provider) {
+        const first = modelsOf(provider)[0];
+        if (first) setModel(first);
     }
 
     function getModel() {
@@ -780,7 +876,7 @@ Singleton {
             }
 
             // Handle error responses
-            if (requester.message.content.includes("API key not valid")) {
+            if (requester.message.content.includes("API key not valid") || requester.message.content.includes("invalid x-api-key")) {
                 root.addApiKeyAdvice(models[requester.message.model]);
             }
         }

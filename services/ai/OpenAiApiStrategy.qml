@@ -24,6 +24,8 @@ ApiStrategy {
             "tools": tools,
             "temperature": temperature,
         };
+        // OpenAI rejects an empty tools array
+        if (!tools?.length) delete baseData.tools;
         return model.extraParams ? Object.assign({}, baseData, model.extraParams) : baseData;
     }
 

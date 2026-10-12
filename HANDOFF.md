@@ -16,22 +16,25 @@ Safety rule: nothing that allows anything is printed without a decision a human 
 | 45ea96d9 | AI usage card: approve from shell, multi-agent tab, edit ticker, jump to terminal |
 | 423ac9f3 | Group 1: more agents (Codex/Gemini/Copilot/Muse/Cursor/Antigravity/OpenCode/Amp installers), expandable diffs, weekly recap (Week tab) |
 | 2db98703 | Group 2: Bit outfits/wardrobe, desktop Bit, file drop, sounds, shortcuts, Ask tab |
+| 3a1a50d2 | Group 3: Services sub-tab (GitHub, Vercel, n8n, Notion, Resend; Stripe/Cal.com left for later, see coucou integrations.rs). Live API calls untested (no keys): check XHR headers, GitHub User-Agent |
 
 AI usage card tabs: 0 Usage, 1 Agents, 2 Week, 3 Ask, 4 Services (permission requests/questions; auto-switches and returns). Default `tab: 0`.
 
 ## To do
-1. **Group 3: Integrations** (written, verified visually, awaiting commit): Services sub-tab in the AI usage card (tab 4, `dash/ServicesTab.qml`, `dash/ServiceCard.qml`) with GitHub, Vercel, Stripe,
-   n8n, Notion, Resend cards (Stripe and Cal.com dropped for now; re-add from coucou integrations.rs). Keys in the keyring under `integrations` (`services/Integrations.qml`,
-   parsers in `services/scripts/integrations.js`, test `node scripts/test_integrations.mjs`, UI in `modules/dashboard/dash/`). Live API calls are untested (no keys): check XHR headers, GitHub User-Agent, Stripe Basic auth.
-   Parser strings ("approved", "review requested", ...) are English only; the tab has no config toggle.
-2. **Group 4: Chat + voice**: provider switcher (Claude/Gemini/OpenAI/Ollama) in the existing AI chat
-   (`modules/aichat`, `services/Ai.qml`, `services/ai/`), plus the "OK Bit" voice assistant.
-3. Optional small follow-up: Bit's seasonal outfit (`services/Bit.qml`, `seasonal`) is only evaluated at shell start;
+1. **Group 4: Chat + voice** (written, awaiting commit; 4a chat verified visually, 4b voice verified up to transcription):
+   - 4a: provider switcher (Claude/Gemini/OpenAI/Ollama/...) next to the model switcher in the AI chat (`modules/aichat/AiChat.qml`,
+     `services/Ai.qml` `providers`/`setProvider`, new `services/ai/AnthropicApiStrategy.qml`, test `node scripts/test_anthropic.mjs`).
+     The chat panel was already broken on HEAD (old `Appearance.*` API, `Tokens` read inside `PropertyChanges`, missing `Colours` import); fixed here.
+     Keys go in the chat's own key flow (keyring `apiKeys.anthropic` / `apiKeys.openai`). Live Claude/OpenAI requests are untested (no keys). Provider dropdown not clicked in a test.
+   - 4b: "OK Bit" is push-to-talk (the original wake word is macOS-only): bind `caelestia:bitListen` in Hyprland; press to record (pw-record),
+     press again to transcribe with `whisper-cli` (whisper.cpp) using the model at `~/.local/share/caelestia/whisper-model.bin`, then the text is sent to the AI chat
+     (`services/Voice.qml`). Not installed here: whisper-cli, so the transcribe->chat step is untested. No spoken replies (no TTS installed).
+2. Optional small follow-up: Bit's seasonal outfit (`services/Bit.qml`, `seasonal`) is only evaluated at shell start;
    make it re-check daily. Auto dates: Oct 20 - Nov 1 pumpkin, Dec 15-26 santa, Dec 31 - Jan 2 party.
 
 ## Not yet tested
 - Desktop Bit (needs an empty workspace), file drop on the card, sound playback (`pw-play`), wardrobe chip clicks.
-- Bit shortcuts: user must bind `caelestia:bitAllow`, `caelestia:bitDeny`, `caelestia:bitJump` in the Hyprland config.
+- Bit shortcuts: user must bind `caelestia:bitAllow`, `caelestia:bitDeny`, `caelestia:bitJump`, `caelestia:bitListen` in the Hyprland config.
 - Jump-to-terminal with a real terminal; real installs for copilot/muse/cursor/antigravity/opencode/amp
   (only claude/codex/gemini exist on the real home; the rest tested in a fake HOME); Codex needs `/hooks` trust;
   running Claude sessions need a restart to pick up hooks.

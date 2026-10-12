@@ -131,6 +131,14 @@ Scope {
     // qmllint disable unresolved-type
     CustomShortcut {
         // qmllint enable unresolved-type
+        name: "bitListen"
+        description: "Talk to Bit: press to record, press again to send"
+        onPressed: Voice.toggle()
+    }
+
+    // qmllint disable unresolved-type
+    CustomShortcut {
+        // qmllint enable unresolved-type
         name: "bitDeny"
         description: "Deny the oldest agent permission request"
         onPressed: Bit.decideFirst("deny")
