@@ -105,7 +105,7 @@ GridLayout {
     Rect {
         Layout.row: 2
         Layout.column: 0
-        Layout.columnSpan: 4
+        Layout.columnSpan: 3
         Layout.fillWidth: true
         Layout.preferredHeight: eventsCol.implicitHeight
 
@@ -181,8 +181,8 @@ GridLayout {
 
     Rect {
         Layout.row: 2
-        Layout.column: 4
-        Layout.columnSpan: 2
+        Layout.column: 3
+        Layout.columnSpan: 3
         Layout.fillWidth: true
         Layout.fillHeight: true
         Layout.preferredHeight: claudeUsage.implicitHeight

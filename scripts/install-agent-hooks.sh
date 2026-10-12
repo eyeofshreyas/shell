@@ -1,25 +1,26 @@
 #!/usr/bin/env bash
 # Wires Claude Code hook events to the shell's AgentSessions socket (Bit mascot).
-# Safe to re-run: existing hooks are kept, ours are added only if missing.
+# Safe to re-run: other hooks are kept, ours (including the old nc-based ones) are replaced.
 # Usage: scripts/install-agent-hooks.sh [--remove]
 set -euo pipefail
 
 settings="${CLAUDE_SETTINGS:-$HOME/.claude/settings.json}"
-marker="caelestia-agents.sock"
-cmd='nc -UN "${XDG_RUNTIME_DIR:-/run/user/$UID}/caelestia-agents.sock" 2>/dev/null || true'
-events=(SessionStart UserPromptSubmit PreToolUse PostToolUse PostToolUseFailure Notification Stop SessionEnd)
+relay="$(cd "$(dirname "$0")" && pwd)/agent-hook.py"
+marker_re='caelestia-agents\.sock|agent-hook\.py'
+cmd="python3 '$relay'"
+events=(SessionStart UserPromptSubmit PreToolUse PostToolUse PostToolUseFailure Notification PermissionRequest Stop SessionEnd)
 
 command -v jq >/dev/null || { echo "jq is required" >&2; exit 1; }
-command -v nc >/dev/null || echo "warning: nc (openbsd-netcat) not found; hooks will do nothing until it is installed" >&2
+command -v python3 >/dev/null || { echo "python3 is required" >&2; exit 1; }
 
 mkdir -p "$(dirname "$settings")"
 [ -f "$settings" ] || echo '{}' > "$settings"
 cp "$settings" "$settings.bak-agents"
 
 if [ "${1:-}" = "--remove" ]; then
-    jq --arg m "$marker" '
+    jq --arg m "$marker_re" '
         if .hooks then
-            .hooks |= (map_values(map(select(([.hooks[]?.command] | any(contains($m))) | not))) | with_entries(select(.value | length > 0)))
+            .hooks |= (map_values(map(select(([.hooks[]?.command // ""] | any(test($m))) | not))) | with_entries(select(.value | length > 0)))
             | if (.hooks | length) == 0 then del(.hooks) else . end
         else . end' "$settings.bak-agents" > "$settings"
     echo "Removed Bit hooks from $settings"
@@ -29,11 +30,11 @@ fi
 tmp="$(mktemp)"
 cp "$settings" "$tmp"
 for ev in "${events[@]}"; do
-    jq --arg ev "$ev" --arg cmd "$cmd" --arg m "$marker" '
+    # PermissionRequest blocks while the card waits for a click; the relay gives up after 118s
+    jq --arg ev "$ev" --arg cmd "$cmd" --arg m "$marker_re" --argjson t "$([ "$ev" = PermissionRequest ] && echo 120 || echo 5)" '
         .hooks //= {}
-        | .hooks[$ev] //= []
-        | if (.hooks[$ev] | any(.hooks[]?.command | contains($m))) then .
-          else .hooks[$ev] += [{hooks: [{type: "command", command: $cmd}]}] end' "$tmp" > "$tmp.n"
+        | .hooks[$ev] = ((.hooks[$ev] // []) | map(select(([.hooks[]?.command // ""] | any(test($m))) | not)))
+        | .hooks[$ev] += [{hooks: [{type: "command", command: $cmd, timeout: $t}]}]' "$tmp" > "$tmp.n"
     mv "$tmp.n" "$tmp"
 done
 mv "$tmp" "$settings"

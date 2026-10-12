@@ -19,6 +19,7 @@ Item {
     readonly property bool claudeUnavailable: ClaudeUsage.enabled && ClaudeUsage.rateLimitError.length > 0 && ClaudeUsage.lastFetched === 0
     readonly property bool claudeStale: ClaudeUsage.enabled && ClaudeUsage.rateLimitError.length > 0 && ClaudeUsage.lastFetched > 0
     property real now: Date.now()
+    property int tab: 0
 
     implicitWidth: layout.implicitWidth + Tokens.padding.large * 2
     implicitHeight: layout.implicitHeight + Tokens.padding.large * 2
@@ -88,122 +89,119 @@ Item {
             }
         }
 
-        UsageRow {
-            Layout.fillWidth: true
-            visible: ClaudeUsage.enabled && !root.claudeUnavailable
-            label: Tr.tr("Claude session (5h)")
-            percentUsed: ClaudeUsage.sessionUtilization * 100
-            fgColour: Colours.palette.m3primary
-            resetText: {
-                const r = ClaudeUsage.formatReset(ClaudeUsage.sessionReset);
-                return r ? Tr.tr("Resets in %1").arg(r) : "";
+        Repeater {
+            model: ScriptModel {
+                values: AgentSessions.approvals
+            }
+
+            AgentApproval {
+                required property var modelData
+
+                Layout.fillWidth: true
+                approval: modelData
             }
         }
 
-        UsageRow {
+        RowLayout {
             Layout.fillWidth: true
-            visible: ClaudeUsage.enabled && !root.claudeUnavailable
-            label: Tr.tr("Claude weekly")
-            percentUsed: ClaudeUsage.weeklyUtilization * 100
-            fgColour: Colours.palette.m3tertiary
-            resetText: {
-                const r = ClaudeUsage.formatReset(ClaudeUsage.weeklyReset);
-                return r ? Tr.tr("Resets in %1").arg(r) : "";
+            spacing: Tokens.spacing.small
+
+            Chip {
+                label: Tr.tr("Usage")
+                current: root.tab === 0
+                onClicked: root.tab = 0
             }
+
+            Chip {
+                label: Tr.tr("Agents")
+                current: root.tab === 1
+                badge: AgentSessions.sessions.length
+                onClicked: root.tab = 1
+            }
+        }
+
+        AgentSessionsTab {
+            Layout.fillWidth: true
+            visible: root.tab === 1
         }
 
         ColumnLayout {
             Layout.fillWidth: true
-            visible: root.claudeUnavailable
-            spacing: 2
+            visible: root.tab === 0
+            spacing: Tokens.spacing.small
 
-            StyledText {
+            UsageRow {
                 Layout.fillWidth: true
-                text: Tr.tr("Claude usage unavailable")
-                color: Colours.palette.m3error
-                font: Tokens.font.body.builders.small.weight(Font.DemiBold).build()
+                visible: ClaudeUsage.enabled && !root.claudeUnavailable
+                label: Tr.tr("Claude session (5h)")
+                percentUsed: ClaudeUsage.sessionUtilization * 100
+                fgColour: Colours.palette.m3primary
+                resetText: {
+                    const r = ClaudeUsage.formatReset(ClaudeUsage.sessionReset);
+                    return r ? Tr.tr("Resets in %1").arg(r) : "";
+                }
             }
 
-            StyledText {
+            UsageRow {
                 Layout.fillWidth: true
-                wrapMode: Text.Wrap
-                text: ClaudeUsage.rateLimitError
-                color: Colours.palette.m3onSurfaceVariant
-                font: Tokens.font.body.builders.small.scale(0.8).build()
-            }
-        }
-
-        UsageRow {
-            Layout.fillWidth: true
-            visible: AiCliUsage.codex !== null
-            label: AiCliUsage.codex?.period === "monthly" ? Tr.tr("Codex (monthly)") : Tr.tr("Codex (5h)")
-            percentUsed: 100 - (AiCliUsage.codex?.percentLeft ?? 100)
-            fgColour: Colours.palette.m3secondary
-            resetText: AiCliUsage.codex?.reset ? Tr.tr("Resets %1").arg(AiCliUsage.codex.reset) : ""
-        }
-
-        UsageRow {
-            Layout.fillWidth: true
-            visible: AiCliUsage.codex !== null && AiCliUsage.codex.weeklyPercentLeft !== null
-            label: Tr.tr("Codex weekly")
-            percentUsed: 100 - (AiCliUsage.codex?.weeklyPercentLeft ?? 100)
-            fgColour: Colours.palette.m3outline
-            resetText: AiCliUsage.codex?.weeklyReset ? Tr.tr("Resets %1").arg(AiCliUsage.codex.weeklyReset) : ""
-        }
-
-        Repeater {
-            model: ScriptModel {
-                values: AgentSessions.sessions.slice(0, 3)
+                visible: ClaudeUsage.enabled && !root.claudeUnavailable
+                label: Tr.tr("Claude weekly")
+                percentUsed: ClaudeUsage.weeklyUtilization * 100
+                fgColour: Colours.palette.m3tertiary
+                resetText: {
+                    const r = ClaudeUsage.formatReset(ClaudeUsage.weeklyReset);
+                    return r ? Tr.tr("Resets in %1").arg(r) : "";
+                }
             }
 
-            RowLayout {
-                id: agentRow
-
-                required property var modelData
-                readonly property color stateColour: modelData.state === "waiting" || modelData.state === "error" ? Colours.palette.m3error : modelData.state === "working" ? Colours.palette.m3primary : Colours.palette.m3outline
-
+            ColumnLayout {
                 Layout.fillWidth: true
-                spacing: Tokens.spacing.small
+                visible: root.claudeUnavailable
+                spacing: 2
 
-                Rectangle {
-                    implicitWidth: 8
-                    implicitHeight: 8
-                    radius: 4
-                    color: agentRow.stateColour
+                StyledText {
+                    Layout.fillWidth: true
+                    text: Tr.tr("Claude usage unavailable")
+                    color: Colours.palette.m3error
+                    font: Tokens.font.body.builders.small.weight(Font.DemiBold).build()
                 }
 
                 StyledText {
                     Layout.fillWidth: true
-                    elide: Text.ElideRight
-                    text: agentRow.modelData.project || Tr.tr("Claude")
-                    font: Tokens.font.body.builders.small.build()
-                }
-
-                StyledText {
-                    text: agentRow.modelData.state === "waiting" ? (agentRow.modelData.tool === "AskUserQuestion" ? Tr.tr("question") : Tr.tr("needs you")) : agentRow.modelData.state === "error" ? Tr.tr("tool failed") : agentRow.modelData.state === "working" ? (agentRow.modelData.tool || Tr.tr("working")) : Tr.tr("idle")
-                    color: agentRow.stateColour
-                    font: Tokens.font.body.builders.small.scale(0.85).build()
+                    wrapMode: Text.Wrap
+                    text: ClaudeUsage.rateLimitError
+                    color: Colours.palette.m3onSurfaceVariant
+                    font: Tokens.font.body.builders.small.scale(0.8).build()
                 }
             }
-        }
 
-        StyledText {
-            Layout.fillWidth: true
-            visible: text.length > 0
-            elide: Text.ElideMiddle
-            text: mascot.lead?.detail ?? ""
-            color: Colours.palette.m3onSurfaceVariant
-            font: Tokens.font.body.builders.small.scale(0.85).build()
-        }
+            UsageRow {
+                Layout.fillWidth: true
+                visible: AiCliUsage.codex !== null
+                label: AiCliUsage.codex?.period === "monthly" ? Tr.tr("Codex (monthly)") : Tr.tr("Codex (5h)")
+                percentUsed: 100 - (AiCliUsage.codex?.percentLeft ?? 100)
+                fgColour: Colours.palette.m3secondary
+                resetText: AiCliUsage.codex?.reset ? Tr.tr("Resets %1").arg(AiCliUsage.codex.reset) : ""
+            }
 
-        StyledText {
-            Layout.fillWidth: true
-            Layout.topMargin: Tokens.spacing.extraSmall
-            horizontalAlignment: Text.AlignHCenter
-            visible: root.lastFetched > 0
-            text: root.claudeStale ? Tr.tr("Updated %1 (rate limited, last known)").arg(root.formatAgo(root.now - root.lastFetched)) : Tr.tr("Updated %1").arg(root.formatAgo(root.now - root.lastFetched))
-            color: root.claudeStale ? Colours.palette.m3error : Colours.palette.m3outline
-            font: Tokens.font.body.builders.small.scale(0.75).build()
+            UsageRow {
+                Layout.fillWidth: true
+                visible: AiCliUsage.codex !== null && AiCliUsage.codex.weeklyPercentLeft !== null
+                label: Tr.tr("Codex weekly")
+                percentUsed: 100 - (AiCliUsage.codex?.weeklyPercentLeft ?? 100)
+                fgColour: Colours.palette.m3outline
+                resetText: AiCliUsage.codex?.weeklyReset ? Tr.tr("Resets %1").arg(AiCliUsage.codex.weeklyReset) : ""
+            }
+
+            StyledText {
+                Layout.fillWidth: true
+                Layout.topMargin: Tokens.spacing.extraSmall
+                horizontalAlignment: Text.AlignHCenter
+                visible: root.lastFetched > 0
+                text: root.claudeStale ? Tr.tr("Updated %1 (rate limited, last known)").arg(root.formatAgo(root.now - root.lastFetched)) : Tr.tr("Updated %1").arg(root.formatAgo(root.now - root.lastFetched))
+                color: root.claudeStale ? Colours.palette.m3error : Colours.palette.m3outline
+                font: Tokens.font.body.builders.small.scale(0.75).build()
+            }
         }
     }
 
