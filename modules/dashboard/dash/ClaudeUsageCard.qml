@@ -204,6 +204,12 @@ Item {
                 current: root.tab === 2
                 onClicked: root.tab = 2
             }
+
+            Chip {
+                label: Tr.tr("Services")
+                current: root.tab === 4
+                onClicked: root.tab = 4
+            }
         }
 
         ColumnLayout {
@@ -233,6 +239,11 @@ Item {
         AgentRecapTab {
             Layout.fillWidth: true
             visible: root.tab === 2
+        }
+
+        ServicesTab {
+            Layout.fillWidth: true
+            visible: root.tab === 4
         }
 
         ColumnLayout {
