@@ -120,6 +120,30 @@ Scope {
         }
     }
 
+    // qmllint disable unresolved-type
+    CustomShortcut {
+        // qmllint enable unresolved-type
+        name: "bitAllow"
+        description: "Allow the oldest agent permission request"
+        onPressed: Bit.decideFirst("allow")
+    }
+
+    // qmllint disable unresolved-type
+    CustomShortcut {
+        // qmllint enable unresolved-type
+        name: "bitDeny"
+        description: "Deny the oldest agent permission request"
+        onPressed: Bit.decideFirst("deny")
+    }
+
+    // qmllint disable unresolved-type
+    CustomShortcut {
+        // qmllint enable unresolved-type
+        name: "bitJump"
+        description: "Jump to the terminal of the agent that needs you"
+        onPressed: Bit.jumpToWaiting()
+    }
+
     IpcHandler {
         function toggle(drawer: string): void {
             if (list().split("\n").includes(drawer)) {

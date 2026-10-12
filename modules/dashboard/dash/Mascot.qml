@@ -18,6 +18,8 @@ Item {
 
     // transient reaction: "" | "happy" | "annoyed" | "dizzy" | "love"
     property string emote: ""
+    // "" | cap | bow | shades | crown | pumpkin | santa | party
+    property string outfit: ""
 
     property bool yawning: false
 
@@ -93,6 +95,8 @@ Item {
         if (!hovering && mood === "sleep")
             yawn();
     }
+
+    signal secondaryClicked
 
     function yawn(): void {
         yawning = true;
@@ -712,6 +716,11 @@ Item {
                 border.color: root.eye
             }
         }
+
+        MascotOutfit {
+            outfit: root.outfit
+            eyeY: face.y + 2
+        }
     }
 
     // what the agent is doing right now
@@ -807,8 +816,9 @@ Item {
     MouseArea {
         anchors.fill: parent
         hoverEnabled: true
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
         cursorShape: Qt.PointingHandCursor
-        onClicked: root.poke()
+        onClicked: mouse => mouse.button === Qt.RightButton ? root.secondaryClicked() : root.poke()
         onEntered: loveTimer.restart()
         onPositionChanged: loveTimer.restart()
         onExited: loveTimer.stop()

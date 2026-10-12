@@ -161,5 +161,12 @@ Variants {
                 absY: clockLoader.y
             }
         }
+
+        Loader {
+            anchors.fill: parent
+            active: Bit.desktop && win.modelData.name === Screens.screens[0]?.name
+
+            sourceComponent: DesktopBit {}
+        }
     }
 }

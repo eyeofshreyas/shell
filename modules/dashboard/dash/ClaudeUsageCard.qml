@@ -20,9 +20,9 @@ Item {
     readonly property bool claudeStale: ClaudeUsage.enabled && ClaudeUsage.rateLimitError.length > 0 && ClaudeUsage.lastFetched > 0
     property real now: Date.now()
     property int tab: 0
-
-    implicitWidth: layout.implicitWidth + Tokens.padding.large * 2
-    implicitHeight: layout.implicitHeight + Tokens.padding.large * 2
+    property int tabBeforeAsk: 0
+    property bool wardrobe: false
+    readonly property int pending: AgentSessions.approvals.length
 
     function formatAgo(ms: real): string {
         const mins = Math.max(0, Math.floor(ms / 60000));
@@ -33,8 +33,35 @@ Item {
         return Tr.tr("%1h ago").arg(Math.floor(mins / 60));
     }
 
+    implicitWidth: layout.implicitWidth + Tokens.padding.large * 2
+    implicitHeight: layout.implicitHeight + Tokens.padding.large * 2
+
+    // A permission request or question gets its own tab, and the card returns to where it was afterwards
+    onPendingChanged: {
+        if (pending > 0 && tab !== 3) {
+            tabBeforeAsk = tab;
+            tab = 3;
+        } else if (pending === 0 && tab === 3) {
+            tab = tabBeforeAsk;
+        }
+    }
+
     HoverHandler {
         id: cardHover
+    }
+
+    // Drop a file on the card to ask the AI chat about it
+    DropArea {
+        anchors.fill: parent
+        onDropped: drop => {
+            if (!drop.hasUrls)
+                return;
+            Ai.attachFile(drop.urls[0].toString());
+            Ai.sendUserMessage(Tr.tr("What is this file? Summarise it."));
+            const screenState = ShellState.forActive();
+            screenState.dashboard = false;
+            screenState.aiChat = true;
+        }
     }
 
     Timer {
@@ -56,22 +83,13 @@ Item {
         RowLayout {
             Layout.fillWidth: true
 
-            Mascot {
+            BitMascot {
                 id: mascot
-
-                readonly property var s: AgentSessions.sessions
-                readonly property var lead: s.find(x => x.state === "waiting") ?? s.find(x => x.state === "error") ?? s.find(x => x.state === "working")
 
                 Layout.preferredWidth: implicitWidth
                 Layout.preferredHeight: implicitHeight
-                tool: lead?.tool ?? ""
-                dancing: Players.active?.isPlaying ?? false
                 pointer: cardHover.hovered ? mapFromItem(root, cardHover.point.position) : Qt.point(NaN, NaN)
-                tired: ClaudeUsage.enabled && Math.max(ClaudeUsage.sessionUtilization, ClaudeUsage.weeklyUtilization) >= 0.95
-                mood: s.some(x => x.state === "waiting") ? "waiting" : s.some(x => x.state === "error") ? "error" : s.some(x => x.state === "working") ? "working" : s.length > 0 ? "idle" : "sleep"
-                body: mood === "waiting" || mood === "error" ? Colours.palette.m3errorContainer : Colours.palette.m3primary
-                eye: mood === "waiting" || mood === "error" ? Colours.palette.m3onErrorContainer : Colours.palette.m3onPrimary
-                accent: Colours.palette.m3error
+                onSecondaryClicked: root.wardrobe = !root.wardrobe
             }
 
             StyledText {
@@ -89,22 +107,84 @@ Item {
             }
         }
 
-        Repeater {
-            model: ScriptModel {
-                values: AgentSessions.approvals
+        Flow {
+            Layout.fillWidth: true
+            visible: root.wardrobe
+            spacing: Tokens.spacing.small
+
+            Repeater {
+                model: [
+                    {
+                        id: "auto",
+                        label: Tr.tr("Auto")
+                    },
+                    {
+                        id: "none",
+                        label: Tr.tr("Bare")
+                    },
+                    {
+                        id: "cap",
+                        label: Tr.tr("Cap")
+                    },
+                    {
+                        id: "bow",
+                        label: Tr.tr("Bow")
+                    },
+                    {
+                        id: "shades",
+                        label: Tr.tr("Shades")
+                    },
+                    {
+                        id: "crown",
+                        label: Tr.tr("Crown")
+                    },
+                    {
+                        id: "pumpkin",
+                        label: Tr.tr("Pumpkin")
+                    },
+                    {
+                        id: "santa",
+                        label: Tr.tr("Santa")
+                    },
+                    {
+                        id: "party",
+                        label: Tr.tr("Party")
+                    }
+                ]
+
+                Chip {
+                    required property var modelData
+
+                    label: modelData.label
+                    current: Bit.outfitPref === modelData.id
+                    onClicked: Bit.setOutfit(modelData.id)
+                }
             }
 
-            AgentApproval {
-                required property var modelData
+            Chip {
+                label: Tr.tr("On desktop")
+                current: Bit.desktop
+                onClicked: Bit.setDesktop(!Bit.desktop)
+            }
 
-                Layout.fillWidth: true
-                approval: modelData
+            Chip {
+                label: Tr.tr("Sounds")
+                current: Bit.sounds
+                onClicked: Bit.setSounds(!Bit.sounds)
             }
         }
 
         RowLayout {
             Layout.fillWidth: true
             spacing: Tokens.spacing.small
+
+            Chip {
+                visible: root.pending > 0
+                label: Tr.tr("Ask")
+                current: root.tab === 3
+                badge: root.pending
+                onClicked: root.tab = 3
+            }
 
             Chip {
                 label: Tr.tr("Usage")
@@ -123,6 +203,25 @@ Item {
                 label: Tr.tr("Week")
                 current: root.tab === 2
                 onClicked: root.tab = 2
+            }
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            visible: root.tab === 3
+            spacing: Tokens.spacing.small
+
+            Repeater {
+                model: ScriptModel {
+                    values: AgentSessions.approvals
+                }
+
+                AgentApproval {
+                    required property var modelData
+
+                    Layout.fillWidth: true
+                    approval: modelData
+                }
             }
         }
 
