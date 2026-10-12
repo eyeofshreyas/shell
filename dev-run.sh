@@ -4,17 +4,15 @@ cd "$(dirname "$(readlink -f "$0")")"
 
 mkdir -p "$PWD/.local"
 
-if [ ! -d build ]; then
-    cmake -S . -B build \
-      -G Ninja \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-      -DCMAKE_INSTALL_PREFIX=$PWD/.local \
-      -DINSTALL_LIBDIR=lib/caelestia \
-      -DINSTALL_QMLDIR=lib/qt6/qml \
-      -DINSTALL_QSCONFDIR=etc/xdg/quickshell/caelestia \
-      -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
-      -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-fi
+cmake -S . -B build \
+  -G Ninja \
+  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+  -DCMAKE_INSTALL_PREFIX=$PWD/.local \
+  -DINSTALL_LIBDIR=lib/caelestia \
+  -DINSTALL_QMLDIR=lib/qt6/qml \
+  -DINSTALL_QSCONFDIR=etc/xdg/quickshell/caelestia \
+  -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
 cmake --build build
 cmake --install build
