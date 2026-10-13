@@ -60,8 +60,8 @@ Item {
             return false;
         }
 
-        function say(text: string): void {
-            if (!Bit.talk)
+        function say(text: string, force: bool): void {
+            if (!Bit.talk && !force)
                 return;
             bubble.text = text;
             bubble.shown = true;
@@ -108,6 +108,33 @@ Item {
             }
         }
 
+        Connections {
+            target: Pomodoro
+
+            function onFocusChanged(): void {
+                if (Pomodoro.running)
+                    spot.say(Pomodoro.focus ? Tr.tr("Focus time!") : Tr.tr("Break time! Stretch a little."));
+            }
+        }
+
+        Timer {
+            interval: 30 * 60 * 1000
+            running: Bit.remind
+            repeat: true
+            onTriggered: {
+                if (!Pomodoro.focus && Pomodoro.running)
+                    return;
+                spot.say(spot.pick([Tr.tr("Drink some water."), Tr.tr("Rest your eyes, look far away."), Tr.tr("Stand up and stretch."), Tr.tr("Sit up straight.")]), true);
+            }
+        }
+
+        Timer {
+            id: clickTimer
+
+            interval: 250
+            onTriggered: ShellState.forActive().aiChat = true
+        }
+
         Timer {
             id: playing
 
@@ -126,7 +153,12 @@ Item {
             mood: (spot.walking || playing.running) && Bit.mood === "sleep" ? "idle" : Bit.mood
             anchors.fill: parent
             scale: 1.5
-            onPrimaryClicked: spot.say(pokes === 0 ? Tr.tr("I'm dizzy...") : pokes < 3 ? spot.pick([Tr.tr("Hehe!"), Tr.tr("Boop!"), Tr.tr("Hi there!")]) : spot.pick([Tr.tr("Hey!"), Tr.tr("Ow!")]))
+            onPrimaryClicked: clickTimer.restart()
+            onPrimaryDoubleClicked: {
+                clickTimer.stop();
+                Pomodoro.toggle();
+                spot.say(Pomodoro.running ? Tr.tr("Let's focus!") : Tr.tr("Timer paused."));
+            }
             transform: Translate {
                 id: bob
             }
@@ -182,7 +214,7 @@ Item {
             repeat: true
             onTriggered: {
                 interval = 6000 + Math.random() * 10000;
-                if (drag.active || spot.walking || Bit.mood === "working" || Bit.mood === "waiting")
+                if (drag.active || spot.walking || (Pomodoro.running && Pomodoro.focus) || Bit.mood === "working" || Bit.mood === "waiting")
                     return;
                 const chat = !bubble.shown && Math.random() < 0.35;
                 if (Bit.walk && Math.random() < 0.5 && spot.walk()) {
@@ -248,6 +280,38 @@ Item {
                     text: bubble.text
                     color: Colours.palette.m3onSurface
                     font: Tokens.font.body.builders.small.build()
+                }
+            }
+        }
+
+        StyledRect {
+            id: pill
+
+            readonly property real below: Math.min(spot.height + 18, root.height - spot.y - height - 8)
+
+            visible: Pomodoro.active
+            x: (spot.width - width) / 2
+            y: below
+            implicitWidth: pillLabel.implicitWidth + 20
+            implicitHeight: pillLabel.implicitHeight + 8
+            radius: height / 2
+            color: Pomodoro.focus ? Colours.palette.m3primaryContainer : Colours.palette.m3tertiaryContainer
+
+            StyledText {
+                id: pillLabel
+
+                anchors.centerIn: parent
+                text: Pomodoro.label
+                color: Pomodoro.focus ? Colours.palette.m3onPrimaryContainer : Colours.palette.m3onTertiaryContainer
+                font: Tokens.font.body.builders.small.build()
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    Pomodoro.reset();
+                    spot.say(Tr.tr("Timer cleared."));
                 }
             }
         }

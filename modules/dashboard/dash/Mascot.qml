@@ -97,6 +97,7 @@ Item {
     }
 
     signal secondaryClicked
+    signal primaryDoubleClicked
     signal primaryClicked
 
     function yawn(): void {
@@ -827,6 +828,7 @@ Item {
                 root.primaryClicked();
             }
         }
+        onDoubleClicked: root.primaryDoubleClicked()
         onEntered: loveTimer.restart()
         onPositionChanged: loveTimer.restart()
         onExited: loveTimer.stop()

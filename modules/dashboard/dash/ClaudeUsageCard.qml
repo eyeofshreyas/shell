@@ -204,6 +204,12 @@ Item {
             }
 
             Chip {
+                label: Tr.tr("Remind")
+                current: Bit.remind
+                onClicked: Bit.setRemind(!Bit.remind)
+            }
+
+            Chip {
                 label: Tr.tr("Sounds")
                 current: Bit.sounds
                 onClicked: Bit.setSounds(!Bit.sounds)

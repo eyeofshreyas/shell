@@ -17,6 +17,7 @@ Singleton {
     property bool sounds: true
     property bool walk: true
     property bool talk: true
+    property bool remind: true
     property real deskX: -1
     property real deskY: -1
     property bool loaded: false
@@ -78,6 +79,11 @@ Singleton {
         save();
     }
 
+    function setRemind(on: bool): void {
+        remind = on;
+        save();
+    }
+
     function setSounds(on: bool): void {
         sounds = on;
         save();
@@ -128,6 +134,7 @@ Singleton {
                     sounds: root.sounds,
                     walk: root.walk,
                     talk: root.talk,
+                    remind: root.remind,
                     deskX: root.deskX,
                     deskY: root.deskY
                 }));
@@ -147,6 +154,7 @@ Singleton {
                 root.sounds = d.sounds !== false;
                 root.walk = d.walk !== false;
                 root.talk = d.talk !== false;
+                root.remind = d.remind !== false;
                 root.deskX = Number(d.deskX ?? -1);
                 root.deskY = Number(d.deskY ?? -1);
             } catch (e) {
