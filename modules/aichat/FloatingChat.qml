@@ -62,7 +62,7 @@ Variants {
         anchors.left: true
         margins.top: py
         margins.left: px
-        implicitWidth: 540
+        implicitWidth: 620
         implicitHeight: bodyHeight + (tailX >= 0 ? tail : 0)
 
         HyprlandFocusGrab {

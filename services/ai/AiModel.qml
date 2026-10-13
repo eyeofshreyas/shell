@@ -6,7 +6,7 @@ import QtQuick;
  * - icon: Icon name of the model
  * - description: Description of the model
  * - endpoint: Endpoint of the model
- * - model: Model code (like gpt-4.1 or gemini-2.5-flash)
+ * - model: Model code (like gpt-6-luna or gemini-3.8-flash)
  * - requires_key: Whether the model requires an API key
  * - key_id: The identifier of the API key. Use the same identifier for models that can be accessed with the same key.
  * - key_get_link: Link to get an API key

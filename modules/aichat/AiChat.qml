@@ -106,6 +106,9 @@ Item {
                     label.elide: Text.ElideRight
 
                     menu.onItemSelected: item => Ai.setProvider(item.modelData)
+                    menu.attachTo: providerSelector
+                    menu.attachSideX: Menu.Left
+                    menu.thisSideX: Menu.Left
                     menu.parent: root
 
                     // Menu assigns `active` on click, which would kill a plain binding
@@ -144,6 +147,9 @@ Item {
                     label.elide: Text.ElideRight
 
                     menu.onItemSelected: item => Ai.setModel(item.modelData)
+                    menu.attachTo: modelSelector
+                    menu.attachSideX: Menu.Left
+                    menu.thisSideX: Menu.Left
                     menu.parent: root
 
                     Binding {

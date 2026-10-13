@@ -21,7 +21,7 @@ class AiConfig : public settings::ObjectNode {
     CONFIG_NODE(AiConfig, settings::ObjectNode)
 
     CONFIG_PROPERTY(bool, enabled, true)
-    CONFIG_PROPERTY(QString, model, u"gemini-2.0-flash"_s)
+    CONFIG_PROPERTY(QString, model, u"gemini-3.8-flash"_s)
     CONFIG_PROPERTY(QString, tool, u"search"_s)
     CONFIG_PROPERTY(qreal, temperature, 0.5)
     CONFIG_PROPERTY(QString, systemPrompt, {})

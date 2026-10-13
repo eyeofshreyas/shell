@@ -9,7 +9,7 @@ const src = fs.readFileSync(new URL("../services/ai/AnthropicApiStrategy.qml", i
   .replace(/function (\w+)\(([^)]*)\)/g, (_, n, a) => `function ${n}(${a.replace(/: [\w<>]+/g, "")})`);
 const S = new Function(`let inputTokens = -1; ${src}; return { buildRequestData, buildAuthorizationHeader, parseResponseLine, reset };`)();
 
-const model = { model: "claude-sonnet-5", extraParams: {} };
+const model = { model: "claude-sonnet-5-5", extraParams: {} };
 const req = S.buildRequestData(model, [
   { role: "assistant", rawContent: "hi, ask me" }, { role: "user", rawContent: "a" }, { role: "user", rawContent: "b" },
   { role: "assistant", rawContent: "" }, { role: "user", rawContent: "c" },
