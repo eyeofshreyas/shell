@@ -26,6 +26,7 @@ Singleton {
     property Component openaiApiStrategy: OpenAiApiStrategy {}
     property Component mistralApiStrategy: MistralApiStrategy {}
     property Component anthropicApiStrategy: AnthropicApiStrategy {}
+    property Component cliApiStrategy: CliApiStrategy {}
     readonly property string interfaceRole: "interface"
     readonly property string apiKeyEnvVarName: "API_KEY"
 
@@ -265,6 +266,12 @@ Singleton {
         },
         "anthropic": {
             "none": [],
+        },
+        "claude-cli": {
+            "none": [],
+        },
+        "codex-cli": {
+            "none": [],
         }
     }
     property list<var> availableTools: Object.keys(root.tools[models[currentModelId]?.api_format])
@@ -378,6 +385,42 @@ Singleton {
             "key_get_description": Tr.tr("**Pricing**: pay as you go.\n\n**Instructions**: Log into the Anthropic Console, go to API keys, click Create Key"),
             "api_format": "anthropic",
         }),
+        "claude-cli-sonnet": aiModelComponent.createObject(this, {
+            "name": "Claude Sonnet",
+            "icon": "anthropic-symbolic",
+            "description": Tr.tr("Subscription | Runs the claude CLI, no API key needed"),
+            "model": "sonnet",
+            "requires_key": false,
+            "key_id": "claude-cli",
+            "api_format": "claude-cli",
+        }),
+        "claude-cli-opus": aiModelComponent.createObject(this, {
+            "name": "Claude Opus",
+            "icon": "anthropic-symbolic",
+            "description": Tr.tr("Subscription | Runs the claude CLI\nMost capable, uses your limit faster"),
+            "model": "opus",
+            "requires_key": false,
+            "key_id": "claude-cli",
+            "api_format": "claude-cli",
+        }),
+        "claude-cli-haiku": aiModelComponent.createObject(this, {
+            "name": "Claude Haiku",
+            "icon": "anthropic-symbolic",
+            "description": Tr.tr("Subscription | Runs the claude CLI\nFastest"),
+            "model": "haiku",
+            "requires_key": false,
+            "key_id": "claude-cli",
+            "api_format": "claude-cli",
+        }),
+        "codex-cli": aiModelComponent.createObject(this, {
+            "name": "Codex",
+            "icon": "openai-symbolic",
+            "description": Tr.tr("Subscription | Runs the codex CLI with its default model"),
+            "model": "",
+            "requires_key": false,
+            "key_id": "codex-cli",
+            "api_format": "codex-cli",
+        }),
         "openai-gpt-4.1": aiModelComponent.createObject(this, {
             "name": "GPT-4.1",
             "icon": "openai-symbolic",
@@ -446,6 +489,8 @@ Singleton {
     property var modelList: Object.keys(root.models)
     readonly property var providerNames: ({
         "anthropic": "Claude",
+        "claude-cli": "Claude CLI",
+        "codex-cli": "Codex CLI",
         "gemini": "Gemini",
         "openai": "OpenAI",
         "ollama": "Ollama",
@@ -462,6 +507,8 @@ Singleton {
         "gemini": geminiApiStrategy.createObject(this),
         "mistral": mistralApiStrategy.createObject(this),
         "anthropic": anthropicApiStrategy.createObject(this),
+        "claude-cli": cliApiStrategy.createObject(this, {"flavor": "claude"}),
+        "codex-cli": cliApiStrategy.createObject(this, {"flavor": "codex"}),
     }
     property ApiStrategy currentApiStrategy: apiStrategies[models[currentModelId]?.api_format || "openai"]
 
@@ -607,8 +654,8 @@ Singleton {
             "thinking": false,
             "done": true,
         });
-        root.messageIDs = [...root.messageIDs, id];
         root.messageByID[id] = aiMessage;
+        root.messageIDs = [...root.messageIDs, id];
         root.messagesChanged();
     }
 
@@ -630,7 +677,7 @@ Singleton {
 
     function providerOf(modelId) {
         const model = models[modelId];
-        return !model ? "" : model.requires_key ? model.key_id : "ollama";
+        return !model ? "" : model.key_id || "ollama";
     }
 
     function modelsOf(provider) {
@@ -818,7 +865,7 @@ Singleton {
 
             /* Create command string */
             let scriptRequestContent = ""
-            scriptRequestContent += `curl --no-buffer "${endpoint}"`
+            scriptRequestContent += requester.currentStrategy.buildCliCommand ? requester.currentStrategy.buildCliCommand(model, data) : `curl --no-buffer "${endpoint}"`
                 + ` ${headerString}`
                 + (authHeader ? ` ${authHeader}` : "")
                 + ` --data '${root.shellSingleQuoteEscape(JSON.stringify(data))}'`

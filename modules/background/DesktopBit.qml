@@ -316,16 +316,22 @@ Item {
             }
         }
 
-        DragHandler {
-            id: drag
+        // Sits above the mascot's MouseArea, which would otherwise swallow the press before a parent handler sees it.
+        Item {
+            anchors.fill: parent
+            z: 1
 
-            target: spot
-            xAxis.minimum: 0
-            xAxis.maximum: root.width - spot.width
-            yAxis.minimum: 0
-            yAxis.maximum: root.height - spot.height
-            onActiveChanged: if (!active)
-                Bit.moveDesktop(spot.x, spot.y)
+            DragHandler {
+                id: drag
+
+                target: spot
+                xAxis.minimum: 0
+                xAxis.maximum: root.width - spot.width
+                yAxis.minimum: 0
+                yAxis.maximum: root.height - spot.height
+                onActiveChanged: if (!active)
+                    Bit.moveDesktop(spot.x, spot.y)
+            }
         }
     }
 }

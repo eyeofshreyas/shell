@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 
+import "../dashboard/dash"
 import qs.components
 import qs.components.containers
 import qs.components.controls
@@ -20,6 +21,28 @@ Item {
 
     anchors.fill: parent
 
+    signal closeRequested
+
+    property bool busy: false
+    property color surface: Colours.palette.m3surfaceContainerHigh
+
+    Connections {
+        target: Ai
+
+        function onMessageUpdated(): void {
+            root.refreshBusy();
+        }
+
+        function onMessagesChanged(): void {
+            root.refreshBusy();
+        }
+    }
+
+    function refreshBusy(): void {
+        const m = Ai.messageByID[Ai.messageIDs[Ai.messageIDs.length - 1]];
+        busy = !!m && m.role === "assistant" && !m.done;
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
@@ -37,11 +60,32 @@ Item {
                 anchors.margins: Tokens.padding.small
                 spacing: Tokens.spacing.medium
 
-                StyledText {
-                    text: qsTr("Chat")
-                    font.pointSize: Tokens.font.body.large.pointSize
-                    font.weight: Font.Medium
-                    color: Colours.palette.m3onSurface
+                Item {
+                    Layout.preferredWidth: 48
+                    Layout.preferredHeight: 48
+
+                    BitMascot {
+                        anchors.fill: parent
+                        anchors.margins: 6
+                        mood: root.busy ? "working" : "idle"
+                        tool: ""
+                    }
+                }
+
+                ColumnLayout {
+                    spacing: 0
+
+                    StyledText {
+                        text: Bit.name
+                        font: Tokens.font.clock.size(Tokens.font.title.medium.pointSize).weight(Font.Bold).build()
+                        color: Colours.palette.m3onSurface
+                    }
+
+                    StyledText {
+                        text: root.busy ? qsTr("Thinking…") : qsTr("Ready")
+                        font: Tokens.font.label.small
+                        color: root.busy ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+                    }
                 }
 
                 Item { Layout.fillWidth: true }
@@ -55,11 +99,21 @@ Item {
                     verticalPadding: Tokens.padding.small
                     stateLayer.disabled: true
 
-                    active: menuItems.find(m => m.modelData === Ai.currentProvider) ?? menuItems[0]
                     menuItems: providerVariants.instances
                     fallbackText: Tr.tr("No Provider")
 
+                    label.Layout.maximumWidth: 100
+                    label.elide: Text.ElideRight
+
                     menu.onItemSelected: item => Ai.setProvider(item.modelData)
+                    menu.parent: root
+
+                    // Menu assigns `active` on click, which would kill a plain binding
+                    Binding {
+                        target: providerSelector
+                        property: "active"
+                        value: providerSelector.menuItems.find(m => m.modelData === Ai.currentProvider) ?? providerSelector.menuItems[0] ?? null
+                    }
 
                     Variants {
                         id: providerVariants
@@ -83,14 +137,20 @@ Item {
                     verticalPadding: Tokens.padding.small
                     stateLayer.disabled: true
 
-                    active: menuItems.find(m => m.modelData === Ai.currentModelId) ?? menuItems[0]
                     menuItems: modelVariants.instances
                     fallbackText: qsTr("No Model")
 
-                    label.Layout.maximumWidth: 160
+                    label.Layout.maximumWidth: 130
                     label.elide: Text.ElideRight
 
                     menu.onItemSelected: item => Ai.setModel(item.modelData)
+                    menu.parent: root
+
+                    Binding {
+                        target: modelSelector
+                        property: "active"
+                        value: modelSelector.menuItems.find(m => m.modelData === Ai.currentModelId) ?? modelSelector.menuItems[0] ?? null
+                    }
 
                     Variants {
                         id: modelVariants
@@ -106,8 +166,9 @@ Item {
                 }
 
                 IconButton {
-                    icon: "settings"
+                    icon: "close"
                     type: IconButton.Text
+                    onClicked: root.closeRequested()
                 }
             }
         }
@@ -146,22 +207,110 @@ Item {
 
             // Empty state
             ColumnLayout {
-                anchors.centerIn: parent
-                visible: messageList.count === 0
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: Tokens.padding.large
+                anchors.rightMargin: Tokens.padding.large
+                visible: !Ai.messageIDs.some(id => Ai.messageByID[id]?.role !== "interface")
                 spacing: Tokens.spacing.small
 
-                MaterialIcon {
-                    Layout.alignment: Qt.AlignHCenter
-                    text: "chat_bubble_outline"
-                    color: Colours.palette.m3outline
-                    fontStyle: Tokens.font.icon.extraLarge
+                BitMascot {
+                    Layout.preferredWidth: 72
+                    Layout.preferredHeight: 72
+                    Layout.bottomMargin: Tokens.spacing.small
+                    mood: "idle"
+                    tool: ""
+                    scale: 1.25
+                    transformOrigin: Item.BottomLeft
                 }
 
                 StyledText {
-                    Layout.alignment: Qt.AlignHCenter
-                    text: qsTr("Start a conversation")
+                    text: qsTr("Hi, I'm %1.").arg(Bit.name)
+                    font: Tokens.font.clock.size(Tokens.font.headline.large.pointSize).weight(Font.Bold).build()
+                    color: Colours.palette.m3onSurface
+                }
+
+                StyledText {
+                    Layout.bottomMargin: Tokens.spacing.normal
+                    text: qsTr("What are we working on?")
+                    font: Tokens.font.body.large
                     color: Colours.palette.m3onSurfaceVariant
-                    font.pointSize: Tokens.font.body.medium.pointSize
+                }
+
+                Repeater {
+                    model: [
+                        {
+                            icon: "event_note",
+                            text: qsTr("Plan my day")
+                        },
+                        {
+                            icon: "bug_report",
+                            text: qsTr("Explain an error message")
+                        },
+                        {
+                            icon: "terminal",
+                            text: qsTr("Write a shell script")
+                        }
+                    ]
+
+                    StyledRect {
+                        id: starter
+
+                        required property var modelData
+
+                        implicitWidth: starterRow.implicitWidth + Tokens.padding.large * 2
+                        implicitHeight: starterRow.implicitHeight + Tokens.padding.medium * 2
+                        radius: Tokens.rounding.full
+                        color: Qt.alpha(Colours.palette.m3primary, 0.1)
+
+                        StateLayer {
+                            color: Colours.palette.m3primary
+                            onClicked: Ai.sendUserMessage(starter.modelData.text)
+                        }
+
+                        RowLayout {
+                            id: starterRow
+
+                            anchors.centerIn: parent
+                            spacing: Tokens.spacing.small
+
+                            MaterialIcon {
+                                text: starter.modelData.icon
+                                color: Colours.palette.m3primary
+                                fontStyle: Tokens.font.icon.small
+                            }
+
+                            StyledText {
+                                text: starter.modelData.text
+                                font: Tokens.font.body.medium
+                                color: Colours.palette.m3onSurface
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Edge fades so scrolled text melts into the bubble
+            Rectangle {
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 18
+                gradient: Gradient {
+                    GradientStop { position: 0; color: root.surface }
+                    GradientStop { position: 1; color: Qt.alpha(root.surface, 0) }
+                }
+            }
+
+            Rectangle {
+                anchors.bottom: parent.bottom
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 18
+                gradient: Gradient {
+                    GradientStop { position: 0; color: Qt.alpha(root.surface, 0) }
+                    GradientStop { position: 1; color: root.surface }
                 }
             }
         }
@@ -218,8 +367,10 @@ Item {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 48
 
-                    color: Colours.palette.m3surfaceContainerHighest
+                    color: Colours.palette.m3surfaceContainer
                     radius: Tokens.rounding.full
+                    border.width: 1
+                    border.color: inputField.activeFocus ? Colours.palette.m3primary : "transparent"
 
                     RowLayout {
                         anchors.fill: parent
@@ -243,7 +394,7 @@ Item {
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
                                 anchors.left: parent.left
-                                text: qsTr("Message...")
+                                text: qsTr("Message %1…").arg(Bit.name)
                                 color: Colours.palette.m3outline
                                 font: inputField.font
                                 visible: !inputField.text && !inputField.activeFocus
@@ -330,15 +481,6 @@ Item {
             return message?.model ?? "";
         }
 
-        function formatText(content) {
-            // Simple markdown to HTML conversion
-            content = content.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>'); // **bold**
-            content = content.replace(/\*(.*?)\*/g, '<b>$1</b>'); // *italic* (treating as bold for simplicity)
-            content = content.replace(/`(.*?)`/g, '<code>$1</code>'); // `code`
-            content = content.replace(/```([\s\S]*?)```/g, '<pre>$1</pre>'); // ```codeblock```
-            return content;
-        }
-
         readonly property bool isUser: messageRole === "user"
         readonly property bool isInterface: messageRole === "interface"
 
@@ -358,15 +500,25 @@ Item {
             }
         }
 
+        BitMascot {
+            visible: !messageItem.isUser
+            width: 30
+            height: 30
+            y: 2
+            mood: messageItem.messageDone ? "idle" : "working"
+            tool: ""
+        }
+
         // Message bubble
         StyledRect {
             id: messageBubble
 
             anchors.left: isUser ? undefined : parent.left
+            anchors.leftMargin: isUser ? 0 : 38
             anchors.right: isUser ? parent.right : undefined
 
             implicitWidth: {
-                const maxWidth = parent.width * 0.75;
+                const maxWidth = isUser ? parent.width * 0.8 : parent.width - 38;
                 const padding = Tokens.padding.medium * 2;
                 if (messageContent.length > 0) {
                     const textWidth = messageText.implicitWidth + padding;
@@ -387,20 +539,8 @@ Item {
                 }
             }
 
-            color: isUser
-                ? Colours.palette.m3primaryContainer
-                : Colours.palette.m3surfaceContainerHigh
+            color: isUser ? Colours.palette.m3primaryContainer : "transparent"
             radius: Tokens.rounding.large
-
-            // Subtle shadow for depth
-            layer.enabled: true
-            layer.effect: DropShadow {
-                horizontalOffset: 0
-                verticalOffset: 1
-                radius: 2
-                samples: 5
-                color: Qt.rgba(0, 0, 0, 0.08)
-            }
 
             // Message text
             StyledText {
@@ -415,12 +555,12 @@ Item {
                 anchors.bottomMargin: isUser ? Tokens.padding.medium : Tokens.padding.small
 
                 visible: messageContent.length > 0
-                text: isUser ? messageContent : formatText(messageContent)
+                text: isUser ? messageContent : messageContent.split("```").map((t, i) => i % 2 ? t : t.replace(/^#{1,6}\s+(.*)$/gm, "**$1**\n")).join("```")
                 color: isUser
                     ? Colours.palette.m3onPrimaryContainer
                     : Colours.palette.m3onSurface
                 wrapMode: Text.Wrap
-                textFormat: isUser ? Text.PlainText : Text.RichText
+                textFormat: isUser ? Text.PlainText : Text.MarkdownText
                 font.pointSize: Tokens.font.body.medium.pointSize
             }
 

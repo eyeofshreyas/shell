@@ -7,6 +7,7 @@
 import "modules"
 import "modules/drawers"
 import "modules/background"
+import "modules/aichat"
 import "modules/areapicker"
 import "modules/displaymode"
 import "modules/lock"
@@ -30,6 +31,7 @@ ShellRoot {
 
     Background {}
     Drawers {}
+    FloatingChat {}
     AreaPicker {}
     DisplayModeSwitcher {}
     Lock {

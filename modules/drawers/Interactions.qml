@@ -150,12 +150,10 @@ CustomMouseArea {
 
                 // Show sidebar on drag if in session area and session is nearly fully visible
                 if (showSidebar && panels.session.offsetScale <= 0 && dragX < -Config.sidebar.dragThreshold) {
-                    screenState.aiChat = false;
                     screenState.sidebar = true;
                 }
             } else if (showSidebar && dragX < -Config.sidebar.dragThreshold) {
                 // Show sidebar on drag if not in session area
-                screenState.aiChat = false;
                 screenState.sidebar = true;
             }
         } else {
