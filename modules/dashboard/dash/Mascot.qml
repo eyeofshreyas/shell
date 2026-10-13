@@ -18,7 +18,7 @@ Item {
 
     // transient reaction: "" | "happy" | "annoyed" | "dizzy" | "love"
     property string emote: ""
-    // "" | cap | bow | shades | crown | pumpkin | santa | party
+    // "" | cap | bow | shades | crown | pumpkin | santa | party | wizard | catears | halo | headphones | tophat | flower
     property string outfit: ""
 
     property bool yawning: false

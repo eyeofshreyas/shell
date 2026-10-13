@@ -149,6 +149,30 @@ Item {
                     {
                         id: "party",
                         label: Tr.tr("Party")
+                    },
+                    {
+                        id: "wizard",
+                        label: Tr.tr("Wizard")
+                    },
+                    {
+                        id: "catears",
+                        label: Tr.tr("Cat")
+                    },
+                    {
+                        id: "halo",
+                        label: Tr.tr("Halo")
+                    },
+                    {
+                        id: "headphones",
+                        label: Tr.tr("Phones")
+                    },
+                    {
+                        id: "tophat",
+                        label: Tr.tr("Top hat")
+                    },
+                    {
+                        id: "flower",
+                        label: Tr.tr("Flower")
                     }
                 ]
 
