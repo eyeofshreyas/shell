@@ -177,57 +177,65 @@ Item {
         }
     }
 
-    // wizard hat: a purple cone with a gold band and star
+    // wizard hat: a purple cone with a bent tip, a wide brim and gold stars
     Item {
         visible: root.outfit === "wizard"
 
         Poly {
             fill: "#5B3FD1"
-            points: [[10, 3], [22, -20], [27, -16], [38, 3], [10, 3]]
+            points: [[13, 2], [21, -9], [24, -17], [32, -21], [29, -12], [35, 2], [13, 2]]
         }
 
         Rectangle {
-            x: 8
-            y: 0
-            width: 32
-            height: 5
-            radius: 2.5
+            x: 5
+            y: -1
+            width: 38
+            height: 6
+            radius: 3
+            color: "#4630A8"
+        }
+
+        Rectangle {
+            x: 13
+            y: -3
+            width: 22
+            height: 4
             color: "#F7B32B"
         }
 
         Rectangle {
-            x: 21
-            y: -9
+            x: 22
+            y: -11
             width: 5
             height: 5
             radius: 1
             rotation: 45
-            color: "#F7B32B"
+            color: "#F7D84B"
         }
     }
 
-    // cat ears with pink insides
+    // cat ears: ginger with pink insides
     Item {
         visible: root.outfit === "catears"
 
         Poly {
-            fill: "#4A4A55"
-            points: [[8, 4], [10, -10], [22, 0], [8, 4]]
+            fill: "#E8913A"
+            points: [[8, 6], [8, -11], [21, 3], [8, 6]]
         }
 
         Poly {
-            fill: "#4A4A55"
-            points: [[40, 4], [38, -10], [26, 0], [40, 4]]
+            fill: "#E8913A"
+            points: [[40, 6], [40, -11], [27, 3], [40, 6]]
         }
 
         Poly {
-            fill: "#FF8FB3"
-            points: [[11, 0], [12, -6], [18, -1], [11, 0]]
+            fill: "#FFB3C7"
+            points: [[11, 3], [11, -5], [17, 2], [11, 3]]
         }
 
         Poly {
-            fill: "#FF8FB3"
-            points: [[37, 0], [36, -6], [30, -1], [37, 0]]
+            fill: "#FFB3C7"
+            points: [[37, 3], [37, -5], [31, 2], [37, 3]]
         }
     }
 
