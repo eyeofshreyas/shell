@@ -9,10 +9,13 @@ import qs.utils
 Singleton {
     id: root
 
+    readonly property string name: "Coco"
+
     // "auto" = seasonal outfit, "none" = bare, otherwise an outfit id
     property string outfitPref: "auto"
     property bool desktop: false
     property bool sounds: true
+    property bool walk: true
     property real deskX: -1
     property real deskY: -1
     property bool loaded: false
@@ -64,6 +67,11 @@ Singleton {
         save();
     }
 
+    function setWalk(on: bool): void {
+        walk = on;
+        save();
+    }
+
     function setSounds(on: bool): void {
         sounds = on;
         save();
@@ -112,6 +120,7 @@ Singleton {
                     outfit: root.outfitPref,
                     desktop: root.desktop,
                     sounds: root.sounds,
+                    walk: root.walk,
                     deskX: root.deskX,
                     deskY: root.deskY
                 }));
@@ -129,6 +138,7 @@ Singleton {
                 root.outfitPref = String(d.outfit ?? "auto");
                 root.desktop = !!d.desktop;
                 root.sounds = d.sounds !== false;
+                root.walk = d.walk !== false;
                 root.deskX = Number(d.deskX ?? -1);
                 root.deskY = Number(d.deskY ?? -1);
             } catch (e) {

@@ -26,7 +26,7 @@ Singleton {
     }
 
     function notify(text: string): void {
-        notifier.exec(["notify-send", "-a", "Bit", "Bit", text]);
+        notifier.exec(["notify-send", "-a", Bit.name, Bit.name, text]);
     }
 
     function send(text: string): void {
@@ -57,7 +57,7 @@ Singleton {
             root.state = "idle";
             const text = heard.text.trim();
             if (code === 127)
-                root.notify("Install whisper.cpp (whisper-cli) to talk to Bit");
+                root.notify("Install whisper.cpp (whisper-cli) to talk to " + Bit.name);
             else if (code === 126)
                 root.notify("Put a whisper model at ~/.local/share/caelestia/whisper-model.bin");
             else if (code !== 0 || text.length === 0 || /^[\[(].*[\])]$/.test(text))

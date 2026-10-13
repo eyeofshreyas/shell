@@ -192,6 +192,12 @@ Item {
             }
 
             Chip {
+                label: Tr.tr("Walk")
+                current: Bit.walk
+                onClicked: Bit.setWalk(!Bit.walk)
+            }
+
+            Chip {
                 label: Tr.tr("Sounds")
                 current: Bit.sounds
                 onClicked: Bit.setSounds(!Bit.sounds)

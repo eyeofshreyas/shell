@@ -166,7 +166,9 @@ Variants {
             anchors.fill: parent
             active: Bit.desktop && win.modelData.name === Screens.screens[0]?.name
 
-            sourceComponent: DesktopBit {}
+            sourceComponent: DesktopBit {
+                avoid: Qt.rect(clockLoader.x, clockLoader.y, clockLoader.width, clockLoader.height)
+            }
         }
     }
 }

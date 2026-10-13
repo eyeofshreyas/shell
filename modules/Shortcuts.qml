@@ -132,7 +132,7 @@ Scope {
     CustomShortcut {
         // qmllint enable unresolved-type
         name: "bitListen"
-        description: "Talk to Bit: press to record, press again to send"
+        description: "Talk to " + Bit.name + ": press to record, press again to send"
         onPressed: Voice.toggle()
     }
 
