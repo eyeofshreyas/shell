@@ -16,6 +16,7 @@ Singleton {
     property bool desktop: false
     property bool sounds: true
     property bool walk: true
+    property bool talk: true
     property real deskX: -1
     property real deskY: -1
     property bool loaded: false
@@ -72,6 +73,11 @@ Singleton {
         save();
     }
 
+    function setTalk(on: bool): void {
+        talk = on;
+        save();
+    }
+
     function setSounds(on: bool): void {
         sounds = on;
         save();
@@ -121,6 +127,7 @@ Singleton {
                     desktop: root.desktop,
                     sounds: root.sounds,
                     walk: root.walk,
+                    talk: root.talk,
                     deskX: root.deskX,
                     deskY: root.deskY
                 }));
@@ -139,6 +146,7 @@ Singleton {
                 root.desktop = !!d.desktop;
                 root.sounds = d.sounds !== false;
                 root.walk = d.walk !== false;
+                root.talk = d.talk !== false;
                 root.deskX = Number(d.deskX ?? -1);
                 root.deskY = Number(d.deskY ?? -1);
             } catch (e) {

@@ -1,5 +1,8 @@
 import QtQuick
+import Caelestia.Config
+import Caelestia.I18n
 import "../dashboard/dash"
+import qs.components
 import qs.services
 
 // Bit sitting on the desktop; drag it anywhere, the spot is remembered.
@@ -57,6 +60,54 @@ Item {
             return false;
         }
 
+        function say(text: string): void {
+            if (!Bit.talk)
+                return;
+            bubble.text = text;
+            bubble.shown = true;
+            playing.restart();
+            bubbleHide.restart();
+        }
+
+        function pick(list: var): string {
+            return list[Math.floor(Math.random() * list.length)];
+        }
+
+        Timer {
+            id: bubbleHide
+
+            interval: 3800
+            onTriggered: bubble.shown = false
+        }
+
+        Connections {
+            property string prev: Bit.mood
+            property int prevPending: Bit.pending
+
+            target: Bit
+
+            function onMoodChanged(): void {
+                if (Bit.mood === "error")
+                    spot.say(Tr.tr("Oops, something broke"));
+                else if (Bit.mood === "waiting")
+                    spot.say(Tr.tr("Waiting for you"));
+                else if (Bit.mood === "idle" && (prev === "working" || prev === "waiting"))
+                    spot.say(Tr.tr("All done!"));
+                prev = Bit.mood;
+            }
+
+            function onPendingChanged(): void {
+                if (Bit.pending > prevPending)
+                    spot.say(Tr.tr("Needs your OK"));
+                prevPending = Bit.pending;
+            }
+
+            function onTiredChanged(): void {
+                if (Bit.tired)
+                    spot.say(Tr.tr("Claude usage is almost full"));
+            }
+        }
+
         Timer {
             id: playing
 
@@ -75,6 +126,7 @@ Item {
             mood: (spot.walking || playing.running) && Bit.mood === "sleep" ? "idle" : Bit.mood
             anchors.fill: parent
             scale: 1.5
+            onPrimaryClicked: spot.say(pokes === 0 ? Tr.tr("I'm dizzy...") : pokes < 3 ? spot.pick([Tr.tr("Hehe!"), Tr.tr("Boop!"), Tr.tr("Hi there!")]) : spot.pick([Tr.tr("Hey!"), Tr.tr("Ow!")]))
             transform: Translate {
                 id: bob
             }
@@ -132,10 +184,71 @@ Item {
                 interval = 6000 + Math.random() * 10000;
                 if (drag.active || spot.walking || Bit.mood === "working" || Bit.mood === "waiting")
                     return;
-                if (Bit.walk && Math.random() < 0.5 && spot.walk())
+                const chat = !bubble.shown && Math.random() < 0.35;
+                if (Bit.walk && Math.random() < 0.5 && spot.walk()) {
+                    if (chat)
+                        spot.say(spot.pick([Tr.tr("Just stretching my legs."), Tr.tr("Off for a stroll.")]));
                     return;
+                }
                 playing.restart();
                 mascot.cheer();
+                if (chat)
+                    spot.say(spot.pick([Tr.tr("Wheee!"), Tr.tr("Boing!"), Tr.tr("Look at me!")]));
+            }
+        }
+
+        Item {
+            id: bubble
+
+            property string text
+            property bool shown: false
+
+            width: label.implicitWidth + 24
+            height: label.implicitHeight + 14
+            x: Math.max(8 - spot.x, Math.min(root.width - 8 - spot.x - width, (spot.width - width) / 2))
+            y: Math.max(8 - spot.y, -height - 22)
+            opacity: shown ? 1 : 0
+            scale: shown ? 1 : 0.85
+            visible: opacity > 0
+            transformOrigin: Item.Bottom
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: 200
+                }
+            }
+
+            Behavior on scale {
+                NumberAnimation {
+                    duration: 200
+                    easing.type: Easing.OutBack
+                }
+            }
+
+            Rectangle {
+                width: 10
+                height: 10
+                rotation: 45
+                x: spot.width / 2 - bubble.x - 5
+                y: bubble.height - 6
+                color: bubbleBody.color
+            }
+
+            Rectangle {
+                id: bubbleBody
+
+                anchors.fill: parent
+                radius: 12
+                color: Colours.palette.m3surfaceContainerHighest
+
+                StyledText {
+                    id: label
+
+                    anchors.centerIn: parent
+                    text: bubble.text
+                    color: Colours.palette.m3onSurface
+                    font: Tokens.font.body.builders.small.build()
+                }
             }
         }
 

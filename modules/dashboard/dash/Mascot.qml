@@ -97,6 +97,7 @@ Item {
     }
 
     signal secondaryClicked
+    signal primaryClicked
 
     function yawn(): void {
         yawning = true;
@@ -818,7 +819,14 @@ Item {
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         cursorShape: Qt.PointingHandCursor
-        onClicked: mouse => mouse.button === Qt.RightButton ? root.secondaryClicked() : root.poke()
+        onClicked: mouse => {
+            if (mouse.button === Qt.RightButton) {
+                root.secondaryClicked();
+            } else {
+                root.poke();
+                root.primaryClicked();
+            }
+        }
         onEntered: loveTimer.restart()
         onPositionChanged: loveTimer.restart()
         onExited: loveTimer.stop()

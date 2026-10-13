@@ -198,6 +198,12 @@ Item {
             }
 
             Chip {
+                label: Tr.tr("Talk")
+                current: Bit.talk
+                onClicked: Bit.setTalk(!Bit.talk)
+            }
+
+            Chip {
                 label: Tr.tr("Sounds")
                 current: Bit.sounds
                 onClicked: Bit.setSounds(!Bit.sounds)
